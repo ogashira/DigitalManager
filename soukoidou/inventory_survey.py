@@ -37,25 +37,25 @@ class InventorySurvey:
         self.inspect_products: List = list(set(df_inspect_products['ITEM_ID']))
         
         # 今日中に倉庫移動が必要な製品(検査する出荷製品)
-        self.inspect_shipping_products = self.calc_inspect_shipping_products()
+        # self.inspect_products= 
+        #         { 'S6-SV3800-U':{'出荷':20, '現在庫':100, '出荷後':80}, ....}
+        self.inspect_shipping_products: Dict = \
+                                         self.calc_inspect_shipping_products()
         if not self.inspect_shipping_products:
             print('翌営業日の出荷製品は処理済みです')
-
-
-
 
 
     def calc_inspect_shipping_products(self)-> Dict:
         # 出荷処理していない翌日出荷製品を求める。
         if self.yotei.empty:
-            return self.yotei
+            dict_yotei:Dict = {}
+            return dict_yotei
         merged_df = self.yotei.merge(self.uriage_sumi, 
                                      on=list(self.yotei.columns),
                                      how='left',
                                      indicator=True)
         df_filtered = merged_df[merged_df['_merge'] == 'left_only']. \
                                                     drop(columns=['_merge'])
-
 
         '''
         # TODO 後で消す 出荷処理済みを削除しないテストケース
@@ -67,7 +67,8 @@ class InventorySurvey:
         # indexを振りなおす（大事)
         df_filtered = df_filtered.reset_index(drop=True)
         if df_filtered.empty:
-            return df_filtered
+            dict_filtered = {}
+            return dict_filtered
 
         # 管理している品番と缶数に変更する。
 

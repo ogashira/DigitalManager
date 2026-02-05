@@ -4,6 +4,9 @@ from fetch_data import *
 from typing import List
 
 class Eigyoubi:
+    '''
+    前日、翌日の稼働日を調査する
+    '''
 
     def __init__(self, cnxn):
 

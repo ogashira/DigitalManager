@@ -1,17 +1,12 @@
-'''
-import time, sys, pprint 
-from yotei import Yotei
-from seisekisyo import *
-from excelsagyou import *
-from jisseki import *
-'''
 from typing import List
 import platform
 import sys
 from eigyoubi import Eigyoubi
 from inventory_survey import InventorySurvey
 from uninspected_products_survey import UninspectedProductsSurvey
+from recorder import Recorder
 from cybozu import *
+from export_paints_list import ExportPaintsList
 
 
 def soukoidou()->None:
@@ -47,9 +42,10 @@ effitAから取り込んでおいてください'''
 
     eigyoubi = Eigyoubi(cnxn_tss) # eigyoubiのインスタンスを生成
 
-    zen_torikomibi: str = eigyoubi.get_before_today() # 2026/09/29
-    honjitu: str = eigyoubi.get_honjitu()             # 2026/09/30
-    yokujitu: str = eigyoubi.get_after_today()        # 2026/10/01
+    zen_jitu: str = eigyoubi.get_before_today()       # 2026/09/29(稼働日)
+    honjitu: str = eigyoubi.get_honjitu()             # 2026/09/30(稼働日)
+    yokujitu: str = eigyoubi.get_after_today()        # 2026/10/01(稼働日)
+
 
     '''
     翌営業日出荷予定製品の在庫があるかどうか調べる。
@@ -70,6 +66,19 @@ effitAから取り込んでおいてください'''
     mytxt = f'{mytxt_hs_mhs}\n\n' \
             f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n' \
             f'{mytxt_zaiko}'
+
+    # コンソール表示とtxt出力
+    recorder = Recorder('soukoidou') # soukoidouはフォルダ名
+    recorder.out_log(mytxt)
+    recorder.out_file(mytxt)
+
+    
+    '''
+    成績書作成
+    輸出塗料連絡表(ExportPaintsListクラス)で昨日出荷製品を調べて、
+    testreport/輸出フォルダに 成績書があるか調べる。無ければ作る
+    '''
+
 
     # メッセージをサイボウズにアップする
     put_cybozu(mytxt)
