@@ -1,12 +1,32 @@
 from typing import List
 import platform
 import sys
+import pprint
 from eigyoubi import Eigyoubi
 from inventory_survey import InventorySurvey
 from uninspected_products_survey import UninspectedProductsSurvey
 from recorder import Recorder
 from cybozu import *
-from export_paints_list import ExportPaintsList
+from create_export_coa import CreateExportCoa
+
+'''
+サーバーにあるsql_server.pyをモジュールとして使う
+importするためにsys.path.appendでpathを認識させて
+importと生成を行う
+'''
+shared_folder_path:str = r'./'
+if platform.system() == 'Linux':
+    shared_folder_path = \
+            r'/mnt/public/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
+elif platform.system() == 'Windows':
+    shared_folder_path = \
+   r'//192.168.1.247/共有/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
+else:
+    pass
+
+sys.path.append(shared_folder_path)
+from sql_server_tss import SqlServer as SqlServerTss # tssサーバー
+from sql_server import SqlServer as SqlServerEffit  # effitAサーバー
 
 
 def soukoidou()->None:
@@ -16,24 +36,6 @@ effitAから取り込んでおいてください'''
 
     print(msg)
 
-    '''
-    サーバーにあるsql_server.pyをモジュールとして使う
-    importするためにsys.path.appendでpathを認識させて
-    importと生成を行う
-    '''
-    shared_folder_path:str = r'./'
-    if platform.system() == 'Linux':
-        shared_folder_path = \
-                r'/mnt/public/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
-    elif platform.system() == 'Windows':
-        shared_folder_path = \
-       r'//192.168.1.247/共有/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
-    else:
-        pass
-
-    sys.path.append(shared_folder_path)
-    from sql_server_tss import SqlServer as SqlServerTss # tssサーバー
-    from sql_server import SqlServer as SqlServerEffit  # effitAサーバー
     sql_server_tss = SqlServerTss()
     sql_server_effit = SqlServerEffit()
     cnxn_tss = sql_server_tss.get_cnxn()
@@ -42,9 +44,10 @@ effitAから取り込んでおいてください'''
 
     eigyoubi = Eigyoubi(cnxn_tss) # eigyoubiのインスタンスを生成
 
-    zen_jitu: str = eigyoubi.get_before_today()       # 2026/09/29(稼働日)
+    zenjitu: str = eigyoubi.get_before_today()       # 2026/09/29(稼働日)
     honjitu: str = eigyoubi.get_honjitu()             # 2026/09/30(稼働日)
     yokujitu: str = eigyoubi.get_after_today()        # 2026/10/01(稼働日)
+    six_months_ago: str = eigyoubi.get_six_months_ago()    # 2026/03/31
 
 
     '''
@@ -72,69 +75,32 @@ effitAから取り込んでおいてください'''
     recorder.out_log(mytxt)
     recorder.out_file(mytxt)
 
-    
     '''
     成績書作成
-    輸出塗料連絡表(ExportPaintsListクラス)で昨日出荷製品を調べて、
+    輸出塗料連絡表(CreateExportCoaクラス)で昨日出荷製品を調べて、
     testreport/輸出フォルダに 成績書があるか調べる。無ければ作る
     '''
+    #TODO後で消す
+    zenjitu = '2025/12/23'
+    create_export_coa = CreateExportCoa(zenjitu, six_months_ago, 
+                                                        cnxn_tss, recorder)
+    nonCreate_coa: List[List[str]] = create_export_coa.create_coa()
+
+
+    # 既存で初物でない成績書、送信済成績書がわかるdfをlogに書いておく
+    create_export_coa.to_log_YTR()
+
+
+    print()
+    print('(成績書作成で失敗したcoa)')
+    pprint.pprint(nonCreate_coa)
+    recorder.out_file_from_list_list(nonCreate_coa, '(成績書作成で失敗したcoa)')
 
 
     # メッセージをサイボウズにアップする
-    put_cybozu(mytxt)
+    # put_cybozu(mytxt)
 
     sql_server_tss.close()
     sql_server_effit.close()
 
 
-    '''
-    # テキストファイルに書き出す>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-    f = open(r'\\192.168.1.247\共有\技術課ﾌｫﾙﾀﾞ\200. effit_data\hinkan.txt', 'w') # 書き込みモードで開く
-    f.write('予定日入力\n\n')
-    f.write(str(yoteibi_str)+'\n\n\n') # 引数の文字列をファイルに書き込む
-    f.write('本日試験\n\n')
-    f.write(str(siken_str) +'\n\n\n')
-    f.write('ﾂﾀﾝｶｰﾒﾝ\n\n')
-    f.write(str(tk_siken_str) +'\n\n\n')
-    f.write('出荷予定の在庫\n\n')
-    f.write(str(yoteizaiko_str) + '\n\n\n')
-
-    f.write('発行を要する成績書\n\n')
-    f.write(str(yt_data) + '\n\n\n')
-
-    f.write('品管ｼｰﾄから発行した成績書\n\n')
-    f.write(str(mycoa) + '\n\n\n')
-
-    f.write('品管ｼｰﾄでｴﾗｰﾒｯｾｰｼﾞが出た成績書\n\n')
-    f.write(str(miss_coa) +'\n\n\n')
-
-    f.write('品管ｼｰﾄでは未発行の成績書\n\n')
-    f.write(str(mycheck) + '\n\n\n')
-
-
-
-
-
-    f.close() # ファイルを閉じる
-
-
-
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-    #テキストファイルに情報を追加
-
-    f = open(r'\\192.168.1.247\共有\技術課ﾌｫﾙﾀﾞ\200. effit_data\hinkan.txt', 'a') # 追記モードで開く
-
-    f.write('ﾒﾀﾙ品管ｼｰﾄで発行する成績書\n\n')
-    f.write(str(pprint.pformat(mtl_coa)) + '\n\n\n')
-    f.write('ﾒﾀﾙ品管ｼｰﾄで発行した成績書\n\n')
-    f.write(str(pprint.pformat(mtl_coa_sumi)) + '\n\n\n')
-    f.write('ﾒﾀﾙ品管ｼｰﾄで発行時ｴﾗｰが出た成績書\n\n')
-    f.write(str(pprint.pformat(mtl_coa_miss)) + '\n\n\n')
-    f.write('ﾒﾀﾙ品管ｼｰﾄでlotが無かったﾘｽﾄ')
-    f.write(str(pprint.pformat(mtl_coa_lotnasi)))
-
-    f.close() # ファイルを閉じる
-
-'''

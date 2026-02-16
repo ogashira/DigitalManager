@@ -1,5 +1,6 @@
 import sys 
 from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 from fetch_data import *
 from typing import List
 
@@ -44,3 +45,8 @@ class Eigyoubi:
         return date.today().strftime("%Y/%m/%d")
 
 
+    def get_six_months_ago(self)->str:
+        today = date.today()
+        six_months_ago = today - relativedelta(months=6)
+        return six_months_ago.strftime("%Y/%m/%d")
+    

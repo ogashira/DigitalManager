@@ -103,11 +103,14 @@ class InventorySurvey:
 
         # 単位がKGだったらCNに変換する
         for i in range(len(df_filtered)):
-            if df_filtered.loc[i, 'TaniCD'] == 'KG':
-                df_filtered.loc[i, 'Qty'] = \
-                        df_filtered.loc[i, 'Qty'] / \
-                        (tjus[df_filtered.loc[i, 'Hinban']]/1000)
+            try:
+                if df_filtered.loc[i, 'TaniCD'] == 'KG':
+                    df_filtered.loc[i, 'Qty'] = \
+                            df_filtered.loc[i, 'Qty'] / \
+                            (tjus[df_filtered.loc[i, 'Hinban']]/1000)
 
+                    df_filtered.loc[i, 'TaniCD'] = 'CN'
+            except:
                 df_filtered.loc[i, 'TaniCD'] = 'CN'
 
         # 検査が必要な出荷品番だけをDicに詰める

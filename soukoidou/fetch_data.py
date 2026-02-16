@@ -247,3 +247,61 @@ class FetchMhk(IFetchData):
             print(e)
 
         return df
+
+
+class FetchHkLot(IFetchData):
+
+    def __init__(self, cnxn, six_months_ago) -> None:
+        self.cnxn = cnxn
+        self.six_months_ago = six_months_ago
+
+
+    def fetch_data(self)-> pd.DataFrame:
+        '''
+        TF_HS: 品質管理
+        '''
+        # cursor = cnxn.cursor()
+        sqlQuery = ("SELECT  LOT" 
+                    " From dbo.TF_HS"
+                    " WHERE  TF_HS.DEL_FLG <> ?" 
+                    " AND INS_DTTM >= ?"
+                    " ORDER BY LOT")
+        
+        df: pd.DataFrame = pd.DataFrame()
+        try:
+            df = pd.read_sql(sqlQuery, self.cnxn, 
+                                       params=['1', self.six_months_ago])
+        except Exception as e:
+            print(f'データベースfetch中に予期せぬエラーです fetch_TF_HS_LOT')
+            print(e)
+
+        return df
+
+
+class FetchMhkLot(IFetchData):
+
+    def __init__(self, cnxn, six_months_ago) -> None:
+        self.cnxn = cnxn
+        self.six_months_ago = six_months_ago
+
+
+    def fetch_data(self)-> pd.DataFrame:
+        '''
+        TF_MHS: メタル品質管理
+        '''
+        # cursor = cnxn.cursor()
+        sqlQuery = ("SELECT LOT" 
+                    " From dbo.TF_MHS"
+                    " WHERE TF_MHS.DEL_FLG <> ?" 
+                    " AND INS_DTTM >= ?"
+                    " ORDER BY LOT")
+        
+        df: pd.DataFrame = pd.DataFrame()
+        try:
+            df = pd.read_sql(sqlQuery, self.cnxn, 
+                                       params=['1', self.six_months_ago])
+        except Exception as e:
+            print(f'データベースfetch中に予期せぬエラーです fetch_TF_MHS_LOT')
+            print(e)
+
+        return df
