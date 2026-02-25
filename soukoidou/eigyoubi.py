@@ -1,7 +1,8 @@
 import sys 
+import datetime
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
-from fetch_data import *
+from fetch_data import IFetchData
 from typing import List
 
 class Eigyoubi:
@@ -9,9 +10,8 @@ class Eigyoubi:
     前日、翌日の稼働日を調査する
     '''
 
-    def __init__(self, cnxn):
+    def __init__(self, fetch_data:IFetchData):
 
-        fetch_data:IFetchData = FetchHolidays(cnxn)
         df_holidays:pd.DataFrame = fetch_data.fetch_data() 
 
         if df_holidays.empty:
@@ -50,3 +50,7 @@ class Eigyoubi:
         six_months_ago = today - relativedelta(months=6)
         return six_months_ago.strftime("%Y/%m/%d")
     
+
+    def get_Ymd_HMS(self)-> str:
+        current_datetime = datetime.datetime.now()
+        return current_datetime.strftime('%Y/%m/%d %H:%M:%S')

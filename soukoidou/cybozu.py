@@ -73,3 +73,4 @@ def put_cybozu(mytxt):
         elem.click()
 
     driver.quit()
+    

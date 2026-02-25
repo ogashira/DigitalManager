@@ -305,3 +305,111 @@ class FetchMhkLot(IFetchData):
             print(e)
 
         return df
+
+
+class FetchHkNotSumi(IFetchData):
+    '''
+    NULLで合格、または、中で合格、または、特。
+    IDOU= {'01':'中', '02':'済', '03':'特'}
+    '''
+
+    def __init__(self, cnxn) -> None:
+        self.cnxn = cnxn
+
+
+    def fetch_data(self)-> pd.DataFrame:
+        '''
+        TF_HS: 品質管理
+        IDOU <> '02'　02以外としてもNULLは取得できない。
+        従って(IDOU IS NULL OR IDOU <> '02')とした
+        '''
+        # cursor = cnxn.cursor()
+        sqlQuery = ("SELECT ITEM_ID as 'Hinban', LOT, KANRI_QTY as 'Cans'," 
+                    " USER_NM_SEI as 'User'" 
+                    " From dbo.TF_HS"
+                    " LEFT JOIN dbo.TM_USER"
+                    " ON TF_HS.KS_TT_USER = TM_USER.USER_ID"
+                    " WHERE  TF_HS.DEL_FLG <> ?" 
+                    " AND (((IDOU IS NULL OR IDOU <> '02' )AND HANTEI='合格') OR IDOU = '03')"
+                    " ORDER BY TF_HS.UPD_DTTM")
+        
+        df: pd.DataFrame = pd.DataFrame()
+        try:
+            df = pd.read_sql(sqlQuery, self.cnxn, 
+                                       params=['1'])
+        except Exception as e:
+            print(f'データベースfetch中に予期せぬエラーです FetchHkNotSumi')
+            print(e)
+
+        return df
+
+
+class FetchMhkNotSumi(IFetchData):
+    '''
+    NULLで合格、または、中で合格、または、特。
+    IDOU= {'01':'中', '02':'済', '03':'特'}
+    '''
+
+    def __init__(self, cnxn) -> None:
+        self.cnxn = cnxn
+
+
+    def fetch_data(self)-> pd.DataFrame:
+        '''
+        TF_HS: 品質管理
+        IDOU <> '02'　02以外としてもNULLは取得できない。
+        従って(IDOU IS NULL OR IDOU <> '02')とした
+        '''
+        # cursor = cnxn.cursor()
+        
+        sqlQuery = ("SELECT ITEM_ID as 'Hinban', LOT, KAN_QTY as 'Cans'" 
+                    " From dbo.TF_MHS"
+                    " WHERE DEL_FLG <> ?" 
+                    " AND (((IDOU IS NULL OR IDOU <> '02' )AND HANTEI='合格') OR IDOU = '03')"
+                    " ORDER BY UPD_DTTM")
+
+        df: pd.DataFrame = pd.DataFrame()
+        try:
+            df = pd.read_sql(sqlQuery, self.cnxn, 
+                                       params=['1'])
+        except Exception as e:
+            print(f'データベースfetch中に予期せぬエラーです FetchMhkNotSumi')
+            print(e)
+
+        return df
+
+
+class FetchKoitoCoa(IFetchData):
+    '''
+    NULLで合格でAorB、または、中で合格でAorB、または、特で合格でAorB。
+    IDOU= {'01':'中', '02':'済', '03':'特'}
+    '''
+
+    def __init__(self, cnxn) -> None:
+        self.cnxn = cnxn
+
+
+    def fetch_data(self)-> pd.DataFrame:
+        '''
+        TF_HS: 品質管理
+        IDOU <> '02'　02以外としてもNULLは取得できない。
+        従って(IDOU IS NULL OR IDOU <> '02')とした
+        '''
+        # cursor = cnxn.cursor()
+        sqlQuery = ("SELECT ITEM_ID as 'Hinban', LOT, KANRI_QTY as 'Cans'," 
+                    " SHIKEN"
+                    " From dbo.TF_HS"
+                    " WHERE  TF_HS.DEL_FLG <> ?" 
+                    " AND (SHIKEN='01' OR SHIKEN='02')"
+                    " AND ((IDOU IS NULL OR IDOU <> '02' )AND HANTEI='合格')"
+                    " ORDER BY TF_HS.UPD_DTTM")
+        
+        df: pd.DataFrame = pd.DataFrame()
+        try:
+            df = pd.read_sql(sqlQuery, self.cnxn, 
+                                       params=['1'])
+        except Exception as e:
+            print(f'データベースfetch中に予期せぬエラーです FetchHkIdou')
+            print(e)
+
+        return df

@@ -1,15 +1,10 @@
-from typing import List, Dict
 import pandas as pd
-from fetch_data import IFetchData, FetchHk, FetchMhk
+from fetch_data import IFetchData
 
 class UninspectedProductsSurvey:
-    def __init__(self, cnxn_tss)-> None:
+    def __init__(self, hk:IFetchData, mhk:IFetchData)-> None:
 
-        hk: IFetchData = FetchHk(cnxn_tss)
         self.df_hk: pd.DataFrame = hk.fetch_data()
-
-
-        mhk: IFetchData = FetchMhk(cnxn_tss)
         self.df_mhk: pd.DataFrame = mhk.fetch_data()
 
 

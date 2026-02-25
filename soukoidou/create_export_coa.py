@@ -1,4 +1,3 @@
-from re import I
 import pandas as pd
 import platform
 import datetime
@@ -6,9 +5,8 @@ from typing import List, cast
 import os
 import sys
 import pdfplumber
-import pprint
 import zenhan
-from fetch_data import IFetchData, FetchHkLot, FetchMhkLot
+from fetch_data import IFetchData
 from recorder import Recorder
 
 '''
@@ -19,17 +17,15 @@ importと生成を行う
 shared_folder_path:str = r'./'
 if platform.system() == 'Linux':
     shared_folder_path = \
-         r'/mnt/public/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
+            r'/mnt/public/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
 elif platform.system() == 'Windows':
     shared_folder_path = \
-r'//192.168.1.247/共有/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
+   r'//192.168.1.247/共有/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
 else:
     pass
 
-#自作モジュールをインポートする
 sys.path.append(shared_folder_path)
-from tss_coa_from_hs import TssCoaFromHs
-from tss_coa_from_mhs import TssCoaFromMhs
+from I_tss_coa import ITssCoa
 from list_contents_of_zip_files import ListContentsOfZipFiles
 
 
@@ -43,11 +39,15 @@ class CreateExportCoa:
     作成しない
     '''
 
-    def __init__(self, zenjitu, six_months_ago, cnxn_tss,
-                 recorder:Recorder)-> None:
+    def __init__(self, args)-> None:
 
+        zenjitu = args.zenjitu
         # recorderのインスタンスをもらっておく
-        self.recorder:Recorder = recorder
+        self.recorder:Recorder = args.recorder
+
+        self.HS: ITssCoa = args.tss_coa_from_hs
+        self.MHS: ITssCoa = args.tss_coa_from_mhs
+
 
         path = r'\\192.168.1.247\Guest\輸出塗料連絡表.xlsx'
         self.coa_path = r'\\192.168.1.247\共有\営業課ﾌｫﾙﾀﾞ\testreport\輸出'
@@ -79,14 +79,13 @@ class CreateExportCoa:
             first_path:str = r'/mnt/public/営業課ﾌｫﾙﾀﾞ/testreport/zip_files'
 
         # zip_files/送信済のファイル名リストを取得する
-        listContentsOfZipFiles = ListContentsOfZipFiles() # インスタンス
         self.sentCoas: List[str] = [] # zip_files/送信済のpdfファイル名リスト
         for nounyuu_dire in nounyubis:
             nounyuu_dire = f'{nounyuu_dire[:4]}{nounyuu_dire[5:7]}{nounyuu_dire[8:]}'
             path = f'{first_path}/{nounyuu_dire}/送信済'
             # zip_files/送信済のファイル名リストを取得する
             self.sentCoas += \
-                       listContentsOfZipFiles.list_contents_of_zip_files(path)
+                       args.listContentsOfZipFiles.list_contents_of_zip_files(path)
 
 
         # is_Exists_coa 列（既にcoaがあるか？）を作る
@@ -98,12 +97,10 @@ class CreateExportCoa:
 
         # HSとMHSからlotのリストを得る。輸出塗料連絡表のLotがどちらのデータベースに
         # あるかを判定して、成績書を作成する
-        fetch_HS_lot: IFetchData = FetchHkLot(cnxn_tss, six_months_ago)
-        df_HS = fetch_HS_lot.fetch_data()
+        df_HS = args.fetch_HS_lot.fetch_data()
         self.HS_lots: List[str] = list(df_HS['LOT'])
 
-        fetch_MHS_lot: IFetchData = FetchMhkLot(cnxn_tss, six_months_ago)
-        df_MHS = fetch_MHS_lot.fetch_data()
+        df_MHS = args.fetch_MHS_lot.fetch_data()
         self.MHS_lots: List[str] = list(df_MHS['LOT'])
 
 
@@ -202,9 +199,6 @@ class CreateExportCoa:
         mksk_dic = dict(zip(YSSH['輸出塗料連絡表表記'], 
                                                      YSSH['userform1combobox']))
 
-        # インスタンス生成
-        HS: TssCoaFromHs = TssCoaFromHs() 
-        MHS: TssCoaFromMhs = TssCoaFromMhs()
         # 輸出塗料連絡表で成績書が存在しない、かつ送信済でない行でループする
         YTR_false = self.YTR[(self.YTR['is_exists_coa'] == False) & 
             (self.YTR['already_sent_coa_exists']== False)].reset_index(drop=True) 
@@ -226,14 +220,14 @@ class CreateExportCoa:
                   
             # 品室管理にある場合
             if lot in self.HS_lots:
-                is_success_or_failed_HS: str = HS.create_coa(mksk, lot, 
-                                                         self.output_path)
+                is_success_or_failed_HS: str = self.HS.create_coa(lot, 
+                                                         self.output_path, mksk)
                 if is_success_or_failed_HS != 'success':
                     line: List[str] = [mksk, lot, name, order_no ]
                     line.append(is_success_or_failed_HS)
                     HS_nonCreate_coa.append(line)
             elif lot in self.MHS_lots: # メタル品質管理にある場合
-                is_success_or_failed_MHS: str = MHS.create_coa(lot, 
+                is_success_or_failed_MHS: str = self.MHS.create_coa(lot, 
                                                       self.output_path)
                 if is_success_or_failed_MHS != 'success':
                     line: List[str] = [mksk, lot, name, order_no ]

@@ -1,27 +1,45 @@
 from typing import List, TYPE_CHECKING
+import platform
+import sys
 import pprint
+from uninspected_products_survey import UninspectedProductsSurvey
 from cybozu import *
-from instance_factory import InstanceFactory
+from create_export_coa import CreateExportCoa
+from factory import Factory
 
-# 実行時にはインポートせず、型チェックの為だけに書く　
+'''
+サーバーにあるsql_server.pyをモジュールとして使う
+importするためにsys.path.appendでpathを認識させて
+importと生成を行う
+'''
+shared_folder_path:str = r'./'
+if platform.system() == 'Linux':
+    shared_folder_path = \
+            r'/mnt/public/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
+elif platform.system() == 'Windows':
+    shared_folder_path = \
+   r'//192.168.1.247/共有/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
+else:
+    pass
+sys.path.append(shared_folder_path)
+
 if TYPE_CHECKING:
     from sql_server_tss import SqlServer as SqlServerTss # tssサーバー
     from sql_server import SqlServer as SqlServerEffit  # effitAサーバー
     from eigyoubi import Eigyoubi
     from recorder import Recorder
+    from I_tss_coa import ITssCoa
     from inventory_survey import InventorySurvey
-    from uninspected_products_survey import UninspectedProductsSurvey
-    from create_export_coa import CreateExportCoa
 
 
 def soukoidou()->None:
 
-    sql_server_tss: SqlServerTss = InstanceFactory.get_sql_server_tss()
-    sql_server_effit: SqlServerEffit = InstanceFactory.get_sql_server_effit()
+    sql_server_tss: SqlServerTss = Factory.get_sql_server_tss()
+    sql_server_effit: SqlServerEffit = Factory.get_sql_server_effit()
     cnxn_tss = sql_server_tss.get_cnxn()
     cnxn_effit = sql_server_effit.get_cnxn() 
 
-    eigyoubi: Eigyoubi = InstanceFactory.get_eigyoubi(cnxn_tss) # eigyoubiのインスタンスを生成
+    eigyoubi: Eigyoubi = Factory.get_eigyoubi(cnxn_tss) # eigyoubiのインスタンスを生成
 
     zenjitu: str = eigyoubi.get_before_today()             # 2026/09/29(稼働日)
     honjitu: str = eigyoubi.get_honjitu()                  # 2026/09/30(稼働日)
@@ -30,7 +48,7 @@ def soukoidou()->None:
     YmdHMS: str = eigyoubi.get_Ymd_HMS()                    # 2026/09/30 08:31:28 
 
     # Recorderのインスタンス生成
-    recorder:Recorder = InstanceFactory.get_recorder('soukoidou') # soukoidouはフォルダ名
+    recorder = Recorder('soukoidou') # soukoidouはフォルダ名
     stt_msg = f'\n{YmdHMS}\nデジタル部長スタート\n'
     recorder.out_log(stt_msg, '\n')
     recorder.out_file(stt_msg, '\n')
@@ -43,9 +61,13 @@ def soukoidou()->None:
     翌営業日出荷予定製品の在庫があるかどうか調べる。
     営業部で既に出荷処理を行っていれば、出荷予定製品として出てこないようにした。
     '''
-    inventory_survey:InventorySurvey = InstanceFactory.get_inventory_survey(
-                                                        cnxn_tss, cnxn_effit, 
-                                                        yokujitu)
+    tss_coa_from_hs: ITssCoa = Factory.get_tss_coa_from_hs()
+    tss_coa_from_mhs: ITssCoa = Factory.get_tss_coa_from_mhs()
+    inventory_survey:InventorySurvey = InventorySurvey(cnxn_tss, 
+                                                       cnxn_effit, 
+                                                       yokujitu, 
+                                                       tss_coa_from_hs,
+                                                       tss_coa_from_mhs)
 
     # サイボウズメッセージ用のテキスト
     mytxt_zaiko = inventory_survey.txt_for_cybozu()
@@ -53,8 +75,7 @@ def soukoidou()->None:
     '''
     品質管理、メタル品質管理から検査未完了のデータを持ってくる
     '''
-    uninspected_products_survey: UninspectedProductsSurvey = \
-                           InstanceFactory.get_uninspected_products_survey(cnxn_tss)
+    uninspected_products_survey = UninspectedProductsSurvey(cnxn_tss)
     # サイボウズメッセージ用のテキスト
     mytxt_hs_mhs = uninspected_products_survey.txt_for_cybozu()
 
@@ -73,12 +94,8 @@ def soukoidou()->None:
     '''
     #TODO後で消す
     zenjitu = '2025/12/23'
-
-    create_export_coa: CreateExportCoa = \
-                InstanceFactory.get_create_export_coa(zenjitu, 
-                                                      cnxn_tss,
-                                                      six_months_ago)
-
+    create_export_coa = CreateExportCoa(zenjitu, six_months_ago, 
+                                                        cnxn_tss, recorder)
     nonCreate_coa: List[List[str]] = create_export_coa.create_coa()
 
 
@@ -111,3 +128,6 @@ def soukoidou()->None:
     msg = 'プログラムは無事終了しました。'
     recorder.out_log(msg)
     recorder.out_file(msg)
+
+
+

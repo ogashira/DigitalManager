@@ -1,21 +1,21 @@
 from typing import List, Dict
 import pandas as pd
-from fetch_data import IFetchData, FetchInspectProducts, FetchUriageSumi, \
-                       FetchYotei, FetchInventory, FetchHinban  
+from fetch_data import IFetchData
 
 class InventorySurvey:
 
-    def __init__(self, cnxn_tss, cnxn_effit, yokujitu)-> None:
+    def __init__(self, 
+                 instances_for_inventorySurvey: Dict[str, IFetchData])-> None:
         # 出荷予定データ
-        fy: IFetchData = FetchYotei(cnxn_effit, yokujitu)
+        fy: IFetchData = instances_for_inventorySurvey['fetchYotei']
         self.yotei: pd.DataFrame = fy.fetch_data()
 
         # 出荷処理済データ
-        fus: IFetchData = FetchUriageSumi(cnxn_effit, yokujitu)
+        fus: IFetchData = instances_for_inventorySurvey['fetchUriageSumi']
         self.uriage_sumi: pd.DataFrame = fus.fetch_data()
 
         # 在庫データをDictにする {'S6-SV3800-U': 15, ......}
-        fi: IFetchData = FetchInventory(cnxn_effit)
+        fi: IFetchData = instances_for_inventorySurvey['fetchInventory']
         inventory: pd.DataFrame = fi.fetch_data()
         self.inventory_qty: Dict = {}
         for i in range(len(inventory)):
@@ -28,21 +28,23 @@ class InventorySurvey:
                                                    inventory.loc[i, 'Qty']
 
         # 品番マスタ
-        fh: IFetchData = FetchHinban(cnxn_effit)
+        fh: IFetchData = instances_for_inventorySurvey['fetchHinban']
         self.hinban: pd.DataFrame = fh.fetch_data()
         
         # 検査日数表から検査をする品番を得る
-        fip: IFetchData = FetchInspectProducts(cnxn_tss)
+        fip: IFetchData = instances_for_inventorySurvey['fetchInspectProducts']
         df_inspect_products = fip.fetch_data()
         self.inspect_products: List = list(set(df_inspect_products['ITEM_ID']))
         
         # 今日中に倉庫移動が必要な製品(検査する出荷製品)
-        # self.inspect_products= 
-        #         { 'S6-SV3800-U':{'出荷':20, '現在庫':100, '出荷後':80}, ....}
+        # self.inspect_shipping_products= 
+        #         { 'S6-SV3800-U':{'出荷缶数':20, '現在庫':100, '引当後':80}, ....}
         self.inspect_shipping_products: Dict = \
                                          self.calc_inspect_shipping_products()
-        if not self.inspect_shipping_products:
-            print('翌営業日の出荷製品は処理済みです')
+
+    
+    def get_inspect_shipping_products(self)-> Dict:
+        return self.inspect_shipping_products
 
 
     def calc_inspect_shipping_products(self)-> Dict:
@@ -141,6 +143,11 @@ class InventorySurvey:
     
 
     def txt_for_cybozu(self) -> str:
+        mytxt = ''
+        if not self.inspect_shipping_products:
+            mytxt = '翌営業日の出荷製品は処理済みです\n'
+            return mytxt
+
         yoteizaiko = []
         for mykey,innerdic in self.inspect_shipping_products.items():
             line = f'{mykey.ljust(20)}{str(innerdic["出荷缶数"]).rjust(8)}' \
