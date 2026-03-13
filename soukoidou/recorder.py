@@ -27,6 +27,10 @@ class Recorder(object):
     def out_log (self, txt, rtn=''):
         print('{}{}'.format(txt, rtn))
 
+    def out_log_df(self, df, title:str):
+        print(title)
+        print(df)
+
         
     def out_file (self, txt, rtn=''):
 

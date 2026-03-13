@@ -1,11 +1,17 @@
 from typing import List, Dict
 import pandas as pd
 from fetch_data import IFetchData
+from plus_kensa_goukaku import PlusKensaGoukaku
+
 
 class InventorySurvey:
 
     def __init__(self, 
-                 instances_for_inventorySurvey: Dict[str, IFetchData])-> None:
+                 instances_for_inventorySurvey: Dict[str, IFetchData],
+                 plusKensaGoukaku: PlusKensaGoukaku
+                 )-> None:
+        
+        self.plusKensaGoukaku: PlusKensaGoukaku = plusKensaGoukaku
         # 出荷予定データ
         fy: IFetchData = instances_for_inventorySurvey['fetchYotei']
         self.yotei: pd.DataFrame = fy.fetch_data()
@@ -35,18 +41,18 @@ class InventorySurvey:
         fip: IFetchData = instances_for_inventorySurvey['fetchInspectProducts']
         df_inspect_products = fip.fetch_data()
         self.inspect_products: List = list(set(df_inspect_products['ITEM_ID']))
-        
+
         # 今日中に倉庫移動が必要な製品(検査する出荷製品)
-        # self.inspect_shipping_products= 
+        # self._inspect_shipping_products= 
         #         { 'S6-SV3800-U':{'出荷缶数':20, '現在庫':100, '引当後':80}, ....}
-        self.inspect_shipping_products: Dict = \
-                                         self.calc_inspect_shipping_products()
+        self._inspect_shipping_products = self.calc_inspect_shipping_products()
+        
+
+    def plus_kensa_goukaku(self)-> Dict:
+        return self.plusKensaGoukaku.plus_goukaku(
+                                              self._inspect_shipping_products)
 
     
-    def get_inspect_shipping_products(self)-> Dict:
-        return self.inspect_shipping_products
-
-
     def calc_inspect_shipping_products(self)-> Dict:
         # 出荷処理していない翌日出荷製品を求める。
         if self.yotei.empty:
@@ -144,12 +150,21 @@ class InventorySurvey:
 
     def txt_for_cybozu(self) -> str:
         mytxt = ''
-        if not self.inspect_shipping_products:
+        if not self._inspect_shipping_products:
             mytxt = '翌営業日の出荷製品は処理済みです\n'
             return mytxt
 
+        mytxt = f'翌営業日出荷予定の製品と在庫数\n' \
+                f'出荷処理済の製品は表示されません\n' \
+                f'(出荷後にマイナスの製品は本日中に倉庫移動してください！)\n\n' \
+                f'{self.make_txt_for_Dict_Dict(self._inspect_shipping_products)}'
+
+        return mytxt
+
+
+    def make_txt_for_Dict_Dict(self, dict_dict:Dict)-> str: 
         yoteizaiko = []
-        for mykey,innerdic in self.inspect_shipping_products.items():
+        for mykey,innerdic in dict_dict.items():
             line = f'{mykey.ljust(20)}{str(innerdic["出荷缶数"]).rjust(8)}' \
                    f'{str(innerdic["現在庫"]).rjust(8)}' \
                    f'{str(innerdic["引当後"]).rjust(8)}\n'
@@ -157,11 +172,9 @@ class InventorySurvey:
 
         yoteizaiko_str = ''.join(yoteizaiko)
 
-        mytxt = f'翌営業日出荷予定の製品と在庫数\n' \
-                f'出荷処理済の製品は表示されません\n' \
-                f'(出荷後にマイナスの製品は本日中に倉庫移動してください！)\n\n' \
-                f'{"品番".ljust(20)}{"出荷".rjust(4)}{"現在庫".rjust(6)}'  \
+        mytxt = f'{"品番".ljust(20)}{"出荷".rjust(4)}{"現在庫".rjust(6)}'  \
                 f'{"出荷後".rjust(6)}\n{yoteizaiko_str}\n' 
 
         return mytxt
+
 

@@ -379,8 +379,9 @@ class FetchMhkNotSumi(IFetchData):
         return df
 
 
-class FetchKoitoCoa(IFetchData):
+class FetchKoitoKensa(IFetchData):
     '''
+    小糸coa発行が必要なデータをfetchする
     NULLで合格でAorB、または、中で合格でAorB、または、特で合格でAorB。
     IDOU= {'01':'中', '02':'済', '03':'特'}
     '''
@@ -397,12 +398,12 @@ class FetchKoitoCoa(IFetchData):
         '''
         # cursor = cnxn.cursor()
         sqlQuery = ("SELECT ITEM_ID as 'Hinban', LOT, KANRI_QTY as 'Cans'," 
-                    " SHIKEN"
+                    " SHIKEN, IDOU"
                     " From dbo.TF_HS"
                     " WHERE  TF_HS.DEL_FLG <> ?" 
                     " AND (SHIKEN='01' OR SHIKEN='02')"
-                    " AND ((IDOU IS NULL OR IDOU <> '02' )AND HANTEI='合格')"
-                    " ORDER BY TF_HS.UPD_DTTM")
+                    " AND HANTEI='合格'"
+                    " ORDER BY TF_HS.LOT")
         
         df: pd.DataFrame = pd.DataFrame()
         try:

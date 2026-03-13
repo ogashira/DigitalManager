@@ -2,12 +2,9 @@ import pandas as pd
 import platform
 import datetime
 from typing import List, cast
-import os
 import sys
-import pdfplumber
-import zenhan
-from fetch_data import IFetchData
 from recorder import Recorder
+import coa_check 
 
 '''
 サーバーにあるsql_server.pyをモジュールとして使う
@@ -89,11 +86,17 @@ class CreateExportCoa:
 
 
         # is_Exists_coa 列（既にcoaがあるか？）を作る
+        # 追加引数はタプルとして渡すので(self.coa_path, ) コンマが必要
+        # ['is_exists_coa']は初物は除外する。['already_sent_coa_exists']は
+        # 初物チェックはしない
         if not self.YTR.empty:
-            self.YTR['is_exists_coa'] = \
-                    self.YTR.apply(self.judge_is_exists_coa, axis=1)
-            self.YTR['already_sent_coa_exists'] = \
-                    self.YTR.apply(self.already_sent_coa_exists, axis=1)
+            self.YTR['is_exists_coa'] = self.YTR.apply(
+                    coa_check.is_existsCoa_noHatumono_seriesArgs, 
+                    axis=1, args=(self.coa_path,)
+                    )
+            self.YTR['already_sent_coa_exists'] = self.YTR.apply(
+                    coa_check.is_existsCoa_seriesArgs, 
+                    axis=1, args=(self.sentCoas,))
 
         # HSとMHSからlotのリストを得る。輸出塗料連絡表のLotがどちらのデータベースに
         # あるかを判定して、成績書を作成する
@@ -102,83 +105,6 @@ class CreateExportCoa:
 
         df_MHS = args.fetch_MHS_lot.fetch_data()
         self.MHS_lots: List[str] = list(df_MHS['LOT'])
-
-
-    def judge_is_exists_coa(self, row)-> bool:
-
-        is_exists_coa:bool = False
-
-        ikisaki: str = zenhan.z2h(row['行き先']).replace('/', '-')
-        order_no: str = zenhan.z2h(row['オーダーナンバー'])
-        lot: str = zenhan.z2h(row['ロット番号'])
-
-        for filename in os.listdir(self.coa_path):
-            '''
-            ここを実行するとものすごく遅くなる
-            # ファイルの絶対パスを生成
-            #file_path = os.path.join(self.coa_path, filename)
-
-            # ファイルであり、かつpdfファイルであるかを確認
-            #if os.path.isfile(file_path) and filename.lower().endswith(".pdf"):
-                # ファイル名から拡張子を除いた部分を取得
-                #base_filename = os.path.splitext(filename)[0]
-            '''
-            # ファイルの絶対パス
-            file_path = os.path.join(self.coa_path, filename)
-            filename = zenhan.z2h(filename)
-            if (ikisaki in filename 
-                and order_no in filename
-                and lot in filename
-                and not self.check_is_hatumono(file_path)):
-                is_exists_coa = True
-
-        return is_exists_coa
-
-    
-    def already_sent_coa_exists(self, row)-> bool:
-        '''
-        /testreport/zip_files/<納入日folder>/送信済の中に、行き先、order_no,
-        lotが含まれるファイル名があるか？あったらTrueを返す。
-        '''
-
-        is_sentCoa:bool = False
-
-        ikisaki: str = zenhan.z2h(row['行き先']).replace('/', '-')
-        order_no: str = zenhan.z2h(row['オーダーナンバー'])
-        lot: str = zenhan.z2h(row['ロット番号'])
-
-        for filename in self.sentCoas:
-            # ファイルの絶対パス
-            filename = zenhan.z2h(filename)
-            if (ikisaki in filename 
-                and order_no in filename
-                and lot in filename):
-                is_sentCoa = True
-
-        return is_sentCoa
-
-
-
-    def is_hatumono_createdCoa(self, ikisaki:str, lot:str, order_no:str)-> bool:
-
-        is_hatumono:bool = False
-
-        '''ここがちがう'''
-        ikisaki = zenhan.z2h(ikisaki).replace('/', '-')
-        lot = zenhan.z2h(lot)
-        order_no = zenhan.z2h(order_no)
-
-        for filename in os.listdir(self.coa_path):
-            # ファイルの絶対パス
-            file_path = os.path.join(self.coa_path, filename)
-            filename = zenhan.z2h(filename)
-            if (ikisaki in filename 
-                and order_no in filename
-                and lot in filename
-                and self.check_is_hatumono(file_path)):
-                is_hatumono = True
-
-        return is_hatumono
 
 
     def create_coa(self)-> List[List[str]]:
@@ -238,7 +164,7 @@ class CreateExportCoa:
                 nonCreate_coa.append(line)
 
             # 初物チェックして初物だったらnonCreate_coaにappendする
-            if self.is_hatumono_createdCoa(ikisaki, lot, order_no):
+            if coa_check.is_hatumono(ikisaki, lot, order_no, self.coa_path):
                 nonCreate_coa.append([mksk, lot, name, order_no, '初物NG'])
                 print('↑ 初物です')
             #self.warning_hatumono(coa_folder)
@@ -246,24 +172,6 @@ class CreateExportCoa:
         return nonCreate_coa
 
 
-    def check_is_hatumono(self, pdf_path)-> bool:
-        
-        is_hatumono = False
-        target_text = "初物 要チェック"
-
-        with pdfplumber.open(pdf_path) as pdf:
-
-            # 1ページずつループ
-            for i, page in enumerate(pdf.pages):
-                # ページからテキストを抽出
-                text = page.extract_text()
-                
-                # テキストが存在し、かつターゲット文字列が含まれているか
-                if text and target_text in text:
-                    is_hatumono = True
-        
-        return is_hatumono 
-        
 
     def to_log_YTR(self)-> None:
         # DataFrameでcastしないとpyrightがSeriesになるかもしれないと警告だす。

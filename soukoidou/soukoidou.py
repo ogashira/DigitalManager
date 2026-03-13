@@ -5,8 +5,6 @@ from instance_factory import InstanceFactory
 
 # 実行時にはインポートせず、型チェックの為だけに書く　
 if TYPE_CHECKING:
-    from sql_server_tss import SqlServer as SqlServerTss # tssサーバー
-    from sql_server import SqlServer as SqlServerEffit  # effitAサーバー
     from eigyoubi import Eigyoubi
     from recorder import Recorder
     from inventory_survey import InventorySurvey
@@ -16,12 +14,13 @@ if TYPE_CHECKING:
 
 def soukoidou()->None:
 
-    sql_server_tss: SqlServerTss = InstanceFactory.get_sql_server_tss()
-    sql_server_effit: SqlServerEffit = InstanceFactory.get_sql_server_effit()
-    cnxn_tss = sql_server_tss.get_cnxn()
-    cnxn_effit = sql_server_effit.get_cnxn() 
+    # sqlServerTss, Effitのインスタンス生成し、cnxnを作る
+    # これらは、instance_factoryクラスで保持 最後にdelete_cnxn()を実行して
+    # sql_server.close()を行う
+    InstanceFactory.get_sql_server_tss()
+    InstanceFactory.get_sql_server_effit()
 
-    eigyoubi: Eigyoubi = InstanceFactory.get_eigyoubi(cnxn_tss) # eigyoubiのインスタンスを生成
+    eigyoubi: Eigyoubi = InstanceFactory.get_eigyoubi() # eigyoubiのインスタンスを生成
 
     zenjitu: str = eigyoubi.get_before_today()             # 2026/09/29(稼働日)
     honjitu: str = eigyoubi.get_honjitu()                  # 2026/09/30(稼働日)
@@ -44,8 +43,7 @@ def soukoidou()->None:
     営業部で既に出荷処理を行っていれば、出荷予定製品として出てこないようにした。
     '''
     inventory_survey:InventorySurvey = InstanceFactory.get_inventory_survey(
-                                                        cnxn_tss, cnxn_effit, 
-                                                        yokujitu)
+                                                                       yokujitu)
 
     # サイボウズメッセージ用のテキスト
     mytxt_zaiko = inventory_survey.txt_for_cybozu()
@@ -54,7 +52,7 @@ def soukoidou()->None:
     品質管理、メタル品質管理から検査未完了のデータを持ってくる
     '''
     uninspected_products_survey: UninspectedProductsSurvey = \
-                           InstanceFactory.get_uninspected_products_survey(cnxn_tss)
+                           InstanceFactory.get_uninspected_products_survey()
     # サイボウズメッセージ用のテキスト
     mytxt_hs_mhs = uninspected_products_survey.txt_for_cybozu()
 
@@ -76,7 +74,6 @@ def soukoidou()->None:
 
     create_export_coa: CreateExportCoa = \
                 InstanceFactory.get_create_export_coa(zenjitu, 
-                                                      cnxn_tss,
                                                       six_months_ago)
 
     nonCreate_coa: List[List[str]] = create_export_coa.create_coa()
@@ -105,8 +102,8 @@ def soukoidou()->None:
         recorder.out_file(f'{e}', '\n')
         
 
-    sql_server_tss.close()
-    sql_server_effit.close()
+    # sqlServer.close()を呼び出して、server, cnxnを閉じる
+    InstanceFactory.delete_cnxn()
 
     msg = 'プログラムは無事終了しました。'
     recorder.out_log(msg)

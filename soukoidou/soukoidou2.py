@@ -5,21 +5,22 @@ from cybozu import *
 
 # 実行時にはインポートせず、型チェックの為だけに書く　
 if TYPE_CHECKING:
-    from sql_server_tss import SqlServer as SqlServerTss # tssサーバー
-    from sql_server import SqlServer as SqlServerEffit  # effitAサーバー
     from eigyoubi import Eigyoubi
     from recorder import Recorder
-    from inventory_survey import InventorySurvey
     from soukoidou_check import SoukoidouCheck
     from create_koito_coa import CreateKoitoCoa
+    from ab_test_check import ABTestCheck
+
 
 def soukoidou2()->None:
-    sql_server_tss: SqlServerTss = InstanceFactory.get_sql_server_tss()
-    sql_server_effit: SqlServerEffit = InstanceFactory.get_sql_server_effit()
-    cnxn_tss = sql_server_tss.get_cnxn()
-    cnxn_effit = sql_server_effit.get_cnxn() 
 
-    eigyoubi:Eigyoubi = InstanceFactory.get_eigyoubi(cnxn_tss) # eigyoubiのインスタンスを生成
+    # sqlServerTss, Effitのインスタンス生成し、cnxnを作る
+    # これらは、instance_factoryクラスで保持 最後にdelete_cnxn()を実行して
+    # sql_server.close()を行う
+    InstanceFactory.get_sql_server_tss()
+    InstanceFactory.get_sql_server_effit()
+
+    eigyoubi:Eigyoubi = InstanceFactory.get_eigyoubi() # eigyoubiのインスタンスを生成
 
     zenjitu: str = eigyoubi.get_before_today()             # 2026/09/29(稼働日)
     honjitu: str = eigyoubi.get_honjitu()                  # 2026/09/30(稼働日)
@@ -39,33 +40,22 @@ def soukoidou2()->None:
     '''
     翌営業日出荷予定製品の在庫があるかどうか調べる。
     営業部で既に出荷処理を行っていれば、出荷予定製品として出てこないようにした。
+    InventorySurveyクラスでinspect_shipping_products =
+              { 'S6-SV3800-U':{'出荷缶数':20, '現在庫':100, '引当後':80}, ....}
+    を求めて、更にSoukoidouCheckクラスで済でない合格品の数を引当後にプラスして
+    引当後の在庫がマイナスにならないかをチェック。また、AB試験もチェックして
+    両方okならis_soukoidou_okならTrueとする
     '''
-    inventory_survey:InventorySurvey = \
-            InstanceFactory.get_inventory_survey( cnxn_tss, cnxn_effit, yokujitu)
-    # inspect_shipping_products= 
-    #         { 'S6-SV3800-U':{'出荷缶数':20, '現在庫':100, '引当後':80}, ....}
-    # ラベル張替え品もkg売り品も品質管理で管理している品番名に変換されている。
-    inspect_shipping_products = inventory_survey.get_inspect_shipping_products()
+    soukoidouCheck:SoukoidouCheck = InstanceFactory.get_soukoidou_check(yokujitu)
+    is_soukoidou_ok:bool = soukoidouCheck.check_is_soukoidou_ok()
 
-    soukoidouCheck:SoukoidouCheck = InstanceFactory.get_soukoidou_check(cnxn_tss)
-    # inspect_shipping_produxtsをsoukoidou_checkに渡して引当後の数に
-    # 合格品の数をプラスして書き換えてもらう
-    soukoidouCheck.soukoidou_check(inspect_shipping_products)
 
-    # 引当後マイナス在庫のdicをもらう
-    ''' minus_inventorysが空だったら倉庫移動をかけても良い'''
-    minus_inventorys: Dict = \
-            soukoidouCheck.minus_inventorys(inspect_shipping_products)
- 
     # 小糸成績書を発行する 
-    createKoitoCoa: CreateKoitoCoa = \
-            InstanceFactory.get_create_koito_coa(cnxn_tss)
+    # createKoitoCoa: CreateKoitoCoa = \
+            # InstanceFactory.get_create_koito_coa()
 
 
 
-    pprint.pprint(inspect_shipping_products)
-    print('minus_inventorys')
-    pprint.pprint(minus_inventorys)
-
-    sql_server_tss.close()
-    sql_server_effit.close()
+    
+    # sqlServer.close()を呼び出して、server, cnxnを閉じる
+    InstanceFactory.delete_cnxn()
