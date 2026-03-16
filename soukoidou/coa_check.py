@@ -53,6 +53,51 @@ def is_hatumono(ikisaki: str, lot: str,
     return is_hatumono
 
 
+def is_hatumono_koito(lot: str, path: str)-> bool:
+    '''
+    作ったcoaをpathの中から探して、初物かどうかチェックする
+    '''
+
+    is_hatumono:bool = False
+
+    lot = zenhan.z2h(str(lot))
+
+    for filename in os.listdir(path):
+        # ファイルの絶対パス
+        file_path = os.path.join(path, filename)
+        filenames:List = zenhan.z2h(filename).split('_')
+        if len(filenames) == 4:
+            if ( filenames[1] ==lot
+                and (filenames[3] == '小糸.pdf' or filenames[3] == '小糸.PDF')
+                and check_is_hatumono(file_path)):
+                is_hatumono = True
+
+    return is_hatumono
+
+
+def is_koitoExists_noHatumono(lot: str, path: str)-> bool:
+    '''
+    coaを櫻田フォルダ中から探して、初物かどうかチェックし、
+    初物でないcoaがあったらTrueを返す
+    '''
+    is_koitoExists_noHatumono:bool = False
+
+    lot = zenhan.z2h(str(lot))
+    
+
+    for filename in os.listdir(path):
+        # ファイルの絶対パス
+        file_path = os.path.join(path, filename)
+        filenames:List = zenhan.z2h(filename).split('_')
+        if len(filenames) == 4:
+            if (filenames[1] == lot 
+                and (filenames[3] == '小糸.pdf' or filenames[3] == '小糸.PDF')
+                and not check_is_hatumono(file_path)):
+                is_koitoExists_noHatumono = True
+
+    return is_koitoExists_noHatumono
+
+
 def is_existsCoa_noHatumono_seriesArgs(row: Optional[pd.Series],
                                     path)-> bool:
     is_existsCoa_noHatumono:bool = False

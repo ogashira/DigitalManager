@@ -1,4 +1,6 @@
 import time
+import configparser
+import platform
 from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -9,6 +11,10 @@ from selenium.webdriver.common.by import By
 
 
 def put_cybozu(mytxt):
+    config = configparser.ConfigParser()
+    config.read('cybozu.ini')
+    login_name = config['cybozu']['id']
+    login_pass = config['cybozu']['password']
 
     # driver = webdriver.Chrome(executable_path=r"C:/MyPythonScripts/soukoidou/chromedriver.exe")#driverpath
     #自動でPCのChromeと同じバージョンのdriverをインストールする処理
@@ -21,9 +27,9 @@ def put_cybozu(mytxt):
 
 
     id = driver.find_element(By.NAME, 'username')
-    id.send_keys('oga')#username
+    id.send_keys(login_name)#username
     password = driver.find_element(By.NAME, 'password')
-    password.send_keys('aqaq')#password
+    password.send_keys(login_pass)#password
     time.sleep(1)
 
 # ログインボタンをクリック

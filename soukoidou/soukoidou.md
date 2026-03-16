@@ -93,3 +93,90 @@ self.inspect_shipping_products: Dict= {'S6-SV3800-U':{'出荷':20, '現在庫':1
 1. 倉庫移動実施
 1. サイボウズに結果をアップする
 
+### クラス図
+```mermaid
+---
+title: Soukoidou2
+---
+classDiagram
+direction TB
+
+class Main2{
+    + main()void
+}
+class Soukoidou2{
+    + soukoidou2()void
+}
+class Eigyoubi{
+    - _holidays: List
+    + get_before_today()-> str
+    + get_after_today()-> str
+    + get_honjitu()-> str
+    + get_six_months_ago()-> str
+    + get_Ymd_HMS()-> str
+}
+class InstanceFactory{
+    - _sqlServerTss: Any
+    - _sqlServerEffit: Any
+    - _cnxn_tss
+    - _cnxn_effit
+    - _instances: Dict~str,Any
+    + *_setup_sql_path()-> None*
+    + *get_instance()-> instance*
+}
+class InventorySurvey{
+    - _plusKensaGoukaku: PlusKensaGoukaku
+    - _inspect_shipping_products:Dict[str, Dict[str, int]]
+    + plus_kensa-goukaku()->Dict[str, Dict[str, int]]
+    + calc_inspect_shipping_products()->Dict[str, Dict[str, int]]
+    + txt_for_cybozu()-> str
+    + make_txt_for_Dict_Dict(Dict[str, Dict[str, int]])-> str
+}
+class PlusKensaGoukaku{
+    - _nonSumis: Dict[str, int]
+    + plus_goukaku(Dict[str, Dict[str, int]])-> Dict[str, Dict[str, int]]
+}
+class SoukoidouCheck{
+    - _inventorySurvey: InventorySurvey
+    - _abTestCheck: ABTestCheck
+    - _recorder: Recorder
+    + minus_inventorys(Dict[str, Dict[str, int]])->Dict[str, Dict[str, int]]
+    + check_is_soukoidou_ok()-> bool
+}
+class ABTestCheck{
+    - _createKoitoCoa: CreateKoitoCoa
+    - _recorder: Recorder
+    - _path: str
+    - _ab_check_df: pd.DataFrame
+    - _hinbans: Dict[str, str]
+    - _hinmeis: Dict[str, List~str~]
+    - _passed_koitos_thistime: pd.DataFrame
+    - _passed_koitos_sumi: pd.DataFrame
+    + check_is_abTest_ok()-> bool
+    + find_koito_lastLot_count(pd.Series)-> int
+    + find_koito_lastLot(pd.Series)-> str
+    + make_hinmeis(ps.DataFrame)-> Dict[str, List~str~]
+    + input_to_BsikenKanriSheet()-> None
+    + save_workbook(workBook)->None
+    + get_input_col(str, int, worksheet)-> int
+    + get_lastLot_row(str, int, worksheet)-> int
+}
+class CreateKoitoCoa{
+    - coa_check:import module
+    - tssCoaFromHs: ITssCoa
+    - self._recorder: Recorder
+    - self._check_path
+    - self._output_path
+    + create_koito_coa(pd.DataFrame)->None
+    - _is_exists_koito_coa(str)-> bool
+    - _is_hatumono_koito(str)-> bool
+}
+Main2 --> Soukoidou2
+Soukoidou2 --> Eigyoubi
+Soukoidou2 --> InstanceFactory
+Soukoidou2 --> SoukoidouCheck
+PlusKensaGoukaku "1" --o "1" InventorySurvey
+CreateKoitoCoa "1" --o "1" ABTestCheck
+ABTestCheck "1" --o "1" SoukoidouCheck
+InventorySurvey "1" --o SoukoidouCheck
+```

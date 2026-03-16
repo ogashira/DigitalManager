@@ -47,13 +47,8 @@ def soukoidou2()->None:
     両方okならis_soukoidou_okならTrueとする
     '''
     soukoidouCheck:SoukoidouCheck = InstanceFactory.get_soukoidou_check(yokujitu)
+    # check_is_soukoidou_okの中でcreate_koito_coaも呼ばれる
     is_soukoidou_ok:bool = soukoidouCheck.check_is_soukoidou_ok()
-
-
-    # 小糸成績書を発行する 
-    # createKoitoCoa: CreateKoitoCoa = \
-            # InstanceFactory.get_create_koito_coa()
-
 
 
     

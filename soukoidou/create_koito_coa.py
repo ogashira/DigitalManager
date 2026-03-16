@@ -1,92 +1,88 @@
-from re import I
 import pandas as pd
 import platform
-import datetime
-from typing import List, cast
+from typing import List
 import os
 import sys
-import pdfplumber
-import pprint
 import zenhan
-from fetch_data import IFetchData, FetchHkLot, FetchMhkLot
 from recorder import Recorder
+import coa_check
+
+
+'''
+サーバーにあるsql_server.pyをモジュールとして使う
+importするためにsys.path.appendでpathを認識させて
+importと生成を行う
+'''
+shared_folder_path:str = r'./'
+if platform.system() == 'Linux':
+    shared_folder_path = \
+            r'/mnt/public/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
+elif platform.system() == 'Windows':
+    shared_folder_path = \
+   r'//192.168.1.247/共有/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/sql_python_module'
+else:
+    pass
+
+sys.path.append(shared_folder_path)
+from I_tss_coa import ITssCoa
 
 
 class CreateKoitoCoa:
     '''
     TSS品質管理で試験種=A or B,かつ((移動=Null or 済でない)かつ判定=合格)
     のものは小糸成績書を作成する。
-    メタル品質管理からは小糸成績書を発行しない（syukkaロボットが作る) '''
+    メタル品質管理からは小糸成績書を発行しない（syukkaロボットが作る) 
+    櫻田フォルダにnon初物の小糸成績書がなかったら作る
+    '''
 
-    def __init__(self, fetchKoitoCoa: IFetchData)-> None:
+    def __init__(self, tssCoaFromHs: ITssCoa, recorder: Recorder)-> None:
+
+        self._tssCoaFromHs: ITssCoa = tssCoaFromHs
+        self._recorder: Recorder = recorder
 
         self.check_path = r'\\192.168.1.247\共有\営業課ﾌｫﾙﾀﾞ\testreport\櫻田'
         if platform.system() == 'Linux':
             self.check_path = r'/mnt/public/営業課ﾌｫﾙﾀﾞ/testreport/櫻田' 
-        self.output_path = r'\\192.168.1.247\共有\営業課ﾌｫﾙﾀﾞ\testreport\ABﾁｪｯｸ'
+        self.output_path = r'\\192.168.1.247\共有\営業課ﾌｫﾙﾀﾞ\testreport\櫻田'
         
-        # koitoCoaが必要な品質管理のデータフレーム
-        HS_need_koito_coa: pd.DataFrame = fetchKoitoCoa.fetch_data()
 
-        # 櫻田フォルダ、ABチェックフォルダに小糸成績書が存在するか？
-        # TODO　続きはABチェック後
+    def _is_exists_koito_coa(self, lot)-> bool:
+        return coa_check.is_koitoExists_noHatumono(lot, self.check_path)
 
-         
+
+    def _is_hatumono_koito(self, lot)-> bool:
+        return coa_check.is_hatumono_koito(lot, self.check_path)
+
+
+    def create_koito_coa(self, passed_koitos_thistime)-> None:
+        HS_nonCreate_coa = []
+        for _, row in passed_koitos_thistime.iterrows():
+            lot = row['LOT']
+            hinban = row['Hinban']
+            if self._is_exists_koito_coa(lot):
+                txt = f'{hinban} {lot} の小糸成績書はすでに櫻田フォルダにあります。初物ではありません。'
+                self._recorder.out_log(txt, '\n')
+                self._recorder.out_file(txt, '\n')
+                continue
+
+
+            is_success_or_failed: str = self._tssCoaFromHs.create_coa(lot, 
+                                                     self.output_path, '小糸')
+            if is_success_or_failed != 'success':
+                line: List[str] = [row['Hinban'], lot, '小糸向け']
+                line.append(is_success_or_failed)
+                HS_nonCreate_coa.append(line)
+
+            if self._is_hatumono_koito(lot):
+                add_txt = '↑　NG 初物です\n'
+            else:
+                add_txt = '↑　OK 初物ではありません\n'
+
+            txt = f'{hinban} {lot} の小糸成績書を作成します \n' \
+                  f'{add_txt}'
+            self._recorder.out_log(txt, '\n')
+            self._recorder.out_file(txt, '\n')
+
+
         
-        # 納入日のリストを作る
-        nounyubis: List[str] = list(set(self.YTR['納品日']))
-
-        first_path:str = r'//192.168.1.247/共有/営業課ﾌｫﾙﾀﾞ/testreport/zip_files'
-        if platform.system() == 'Linux':
-            first_path:str = r'/mnt/public/営業課ﾌｫﾙﾀﾞ/testreport/zip_files'
-
-        # zip_files/送信済のファイル名リストを取得する
-        listContentsOfZipFiles = ListContentsOfZipFiles() # インスタンス
-        self.sentCoas: List[str] = [] # zip_files/送信済のpdfファイル名リスト
-        for nounyuu_dire in nounyubis:
-            nounyuu_dire = f'{nounyuu_dire[:4]}{nounyuu_dire[5:7]}{nounyuu_dire[8:]}'
-            path = f'{first_path}/{nounyuu_dire}/送信済'
-            # zip_files/送信済のファイル名リストを取得する
-            self.sentCoas += \
-                       listContentsOfZipFiles.list_contents_of_zip_files(path)
-
-
-        # is_Exists_coa 列（既にcoaがあるか？）を作る
-        if not self.YTR.empty:
-            self.YTR['is_exists_coa'] = \
-                    self.YTR.apply(self.judge_is_exists_coa, axis=1)
-            self.YTR['already_sent_coa_exists'] = \
-                    self.YTR.apply(self.already_sent_coa_exists, axis=1)
-
-
-
-    def judge_is_exists_coa(self, row)-> bool:
-
-        is_exists_coa:bool = False
-
-        ikisaki: str = zenhan.z2h(row['行き先']).replace('/', '-')
-        order_no: str = zenhan.z2h(row['オーダーナンバー'])
-        lot: str = zenhan.z2h(row['ロット番号'])
-
-        for filename in os.listdir(self.coa_path):
-            '''
-            ここを実行するとものすごく遅くなる
-            # ファイルの絶対パスを生成
-            #file_path = os.path.join(self.coa_path, filename)
-
-            # ファイルであり、かつpdfファイルであるかを確認
-            #if os.path.isfile(file_path) and filename.lower().endswith(".pdf"):
-                # ファイル名から拡張子を除いた部分を取得
-                #base_filename = os.path.splitext(filename)[0]
-            '''
-            # ファイルの絶対パス
-            file_path = os.path.join(self.coa_path, filename)
-            filename = zenhan.z2h(filename)
-            if (ikisaki in filename 
-                and order_no in filename
-                and lot in filename
-                and not self.check_is_hatumono(file_path)):
-                is_exists_coa = True
-
-        return is_exists_coa
 

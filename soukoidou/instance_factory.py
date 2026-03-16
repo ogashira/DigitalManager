@@ -283,16 +283,24 @@ class InstanceFactory:
     @classmethod
     def get_create_koito_coa(cls) -> "CreateKoitoCoa":
         from create_koito_coa import CreateKoitoCoa
-        fetchKoitoKensa:IFetchData = cls.get_fetch_koito_kensa()
-        return CreateKoitoCoa(fetchKoitoKensa)
+        from I_tss_coa import ITssCoa
+        from tss_coa_from_hs import TssCoaFromHs 
+        tssCoaFromHs: ITssCoa = TssCoaFromHs()
+        ins_name = 'create_koito_coa'
+        if ins_name not in cls._instances: 
+            cls._instances[ins_name] = \
+                    CreateKoitoCoa(tssCoaFromHs, cls._instances['recorder'])
+        return cls._instances[ins_name]
 
     @classmethod
     def get_ab_test_check(cls) -> "ABTestCheck":
         from ab_test_check import ABTestCheck
         fetchKoitoKensa: IFetchData = cls.get_fetch_koito_kensa()
+        createKoitoCoa = cls.get_create_koito_coa()
         ins_name = 'ab_test_check'
         if ins_name not in cls._instances:
             cls._instances[ins_name] = ABTestCheck(fetchKoitoKensa,
+                                                   createKoitoCoa,
                                                    cls._instances['recorder'])
 
         return cls._instances[ins_name]

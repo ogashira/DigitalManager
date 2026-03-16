@@ -1,3 +1,4 @@
+from re import I
 from typing import Dict
 import pandas as pd
 from recorder import Recorder
@@ -39,7 +40,6 @@ class SoukoidouCheck:
 
         
     def check_is_soukoidou_ok(self)-> bool:
-        is_soukoidou_ok: bool = False
         # 合格品の数をプラスしたinspect_shipping_productsをもらう
         shipping_products_plus_goukaku: Dict = \
                                self._inventorySurvey.plus_kensa_goukaku()
@@ -52,13 +52,24 @@ class SoukoidouCheck:
             f'{self._inventorySurvey.make_txt_for_Dict_Dict(minus_inventorys)}'
             self._recorder.out_log(txt, '\n')
             self._recorder.out_file(txt)
-            return is_soukoidou_ok
+            return False # False
 
-        # ABチェックokなら小糸b試験管理シートに記入してis_soukoidou_okをTrueに
-        if self._abTestCheck.check_is_abTest_ok():
+        # passed_koitos_thistimeが空ならTrue
+        if self._abTestCheck.is_empty_passed_koitos_thistime():
+            txt = '小糸AB試験はありません。倉庫移動可能です。' 
+            self._recorder.out_log(txt, '\n')
+            self._recorder.out_file(txt)
+            return True    
+
+        # passed_koitos_thistimeが空ではなく、ABチェックokなら
+        # 小糸b試験管理シートに記入してis_soukoidou_okをTrueに
+        if not self._abTestCheck.is_empty_passed_koitos_thistime() and \
+                                self._abTestCheck.check_is_abTest_ok():
             self._abTestCheck.input_to_BsikenKanriSheet()
-            is_soukoidou_ok = True
+            self._abTestCheck.create_koito_coa()
+            txt = '倉庫移動可能です。' 
+            self._recorder.out_log(txt, '\n')
+            self._recorder.out_file(txt)
+            return True
 
-        return is_soukoidou_ok
-        
-
+        return False

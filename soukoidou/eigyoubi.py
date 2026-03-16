@@ -18,7 +18,7 @@ class Eigyoubi:
             print('休日データ取得できないため中止します')
             sys.exit()
 
-        self.holidays:List = list(df_holidays['KJ_DT']) 
+        self._holidays:List = list(df_holidays['KJ_DT']) 
 
 
     def get_before_today(self)-> str:
@@ -27,7 +27,7 @@ class Eigyoubi:
         while True:
             before_today = before_today - timedelta(days=1)
             before_str:str = before_today.strftime("%Y/%m/%d")
-            if not before_str in self.holidays:
+            if not before_str in self._holidays:
                 return before_str
         
 
@@ -37,7 +37,7 @@ class Eigyoubi:
         while True:
             after_today = after_today + timedelta(days=1)
             after_str = after_today.strftime("%Y/%m/%d")
-            if not after_str in self.holidays:
+            if not after_str in self._holidays:
                 return after_str
 
 

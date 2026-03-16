@@ -6,7 +6,7 @@ from fetch_data import IFetchData
 class PlusKensaGoukaku:
     '''
     品質管理、メタル品質管理で、検査合格品で倉庫移動されていない
-    製品データ(self.nonSumis)を使って、
+    製品データ(self._nonSumis)を使って、
     inspect_shipping_products(出荷処理されていない翌日出荷予定の製品。
     出荷数、現在庫、出荷後の在庫データを持つ) の出荷後の在庫データに合格品を
     プラスしていく。この段階で、出荷後の在庫がマイナスの製品があると、
@@ -32,15 +32,15 @@ class PlusKensaGoukaku:
                     dic[hinban] = cans
 
 
-        # nonSumis = {'S6-SV3800-U': 23, 'S7-A-M': 31......}
-        self.nonSumis: Dict = {} # 合格していて済でないデータ
-        # self.nonSumisにHK_nonSumiデータとMHK_nonSumiデータを詰める
-        create_nonSumis(self.nonSumis, HK_nonSumi)
-        create_nonSumis(self.nonSumis, MHK_nonSumi)
+        # _nonSumis = {'S6-SV3800-U': 23, 'S7-A-M': 31......}
+        self._nonSumis: Dict = {} # 合格していて済でないデータ
+        # self._nonSumisにHK_nonSumiデータとMHK_nonSumiデータを詰める
+        create_nonSumis(self._nonSumis, HK_nonSumi)
+        create_nonSumis(self._nonSumis, MHK_nonSumi)
 
         #TEST
-        #self.nonSumis['S1-FPA3K2D5HNV-U'] = 55
-        #self.nonSumis['S4-BS421BB-4-U'] = 9
+        #self._nonSumis['S1-FPA3K2D5HNV-U'] = 55
+        #self._nonSumis['S4-BS421BB-4-U'] = 9
 
 
     def plus_goukaku(self, inspect_shipping_products:Dict)-> Dict:
@@ -53,7 +53,7 @@ class PlusKensaGoukaku:
             return  shipping_products_plus_goukaku
         
         for key, inner_dic in inspect_shipping_products.items():
-            if key in self.nonSumis:
-                inner_dic['引当後'] = inner_dic['引当後'] + self.nonSumis[key]
+            if key in self._nonSumis:
+                inner_dic['引当後'] = inner_dic['引当後'] + self._nonSumis[key]
         
         return  shipping_products_plus_goukaku
