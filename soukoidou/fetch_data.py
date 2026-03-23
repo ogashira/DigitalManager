@@ -414,3 +414,48 @@ class FetchKoitoKensa(IFetchData):
             print(e)
 
         return df
+
+
+class FetchSyukko(IFetchData):
+
+    def __init__(self, cnxn, honjitu) -> None:
+        self.cnxn = cnxn
+        self.honjitu = f'{honjitu[:4]}{honjitu[5:7]}{honjitu[8:]}'
+
+
+    def fetch_data(self)-> pd.DataFrame:
+        '''
+        TF_HS: 品質管理
+        IDOU <> '02'　02以外としてもNULLは取得できない。
+        従って(IDOU IS NULL OR IDOU <> '02')とした
+        '''
+        # cursor = cnxn.cursor()
+        sqlQuery = ("SELECT RsySKDay AS '出庫日',"
+                    " RsyHinNam AS '品名',"
+                    " RsyHinCD AS '品番',"
+                    " RsySKSu AS '出庫数量',"
+                    " RsyTehaiCD '出庫先コード',"
+                    " RsyLotNo 'ロットＮＯ',"
+                    " RsySokoFrom '出庫元倉庫',"
+                    " RsySKNo '出庫ＮＯ',"
+                    " RsySKGNo '出庫行ＮＯ'"
+                    " From dbo.RSYUKO"
+                    " WHERE RsySKDay = ?" 
+                    " AND ((RsySokoFrom = 'S0008' AND RsyTehaiCD = 'S0001')"
+                    " OR (RsySokoFrom = 'S0012' AND RsyTehaiCD = 'S0013')"
+                    " OR (RsySokoFrom = 'S0028' AND RsyTehaiCD = 'S0021')"
+                    " OR (RsySokoFrom = 'S0032' AND RsyTehaiCD = 'S0033')"
+                    " OR (RsySokoFrom = 'S0038' AND RsyTehaiCD = 'S0031')"
+                    " OR (RsySokoFrom = 'S0010' AND RsyTehaiCD = 'S0004')"
+                    " OR (RsySokoFrom = 'S0030' AND RsyTehaiCD = 'S0024'))"
+                )
+        
+        df: pd.DataFrame = pd.DataFrame()
+        try:
+            df = pd.read_sql(sqlQuery, self.cnxn, 
+                                       params=[self.honjitu])
+        except Exception as e:
+            print(f'データベースfetch中に予期せぬエラーです FetchHkIdou')
+            print(e)
+
+        return df

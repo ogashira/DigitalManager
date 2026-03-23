@@ -1,8 +1,10 @@
 import pandas as pd
 import platform
 import datetime
+import pprint
 from typing import List, cast
 import sys
+import os
 from recorder import Recorder
 import coa_check 
 
@@ -40,22 +42,22 @@ class CreateExportCoa:
 
         zenjitu = args.zenjitu
         # recorderのインスタンスをもらっておく
-        self.recorder:Recorder = args.recorder
+        self._recorder:Recorder = args.recorder
 
-        self.HS: ITssCoa = args.tss_coa_from_hs
-        self.MHS: ITssCoa = args.tss_coa_from_mhs
+        self._HS: ITssCoa = args.tss_coa_from_hs
+        self._MHS: ITssCoa = args.tss_coa_from_mhs
 
 
         path = r'\\192.168.1.247\Guest\輸出塗料連絡表.xlsx'
-        self.coa_path = r'\\192.168.1.247\共有\営業課ﾌｫﾙﾀﾞ\testreport\輸出'
-        self.YSSH_path = r'\\192.168.1.247\共有\技術課ﾌｫﾙﾀﾞ\200. effit_data' \
+        self._coa_path = r'\\192.168.1.247\共有\営業課ﾌｫﾙﾀﾞ\testreport\輸出'
+        self._YSSH_path = r'\\192.168.1.247\共有\技術課ﾌｫﾙﾀﾞ\200. effit_data' \
                          r'\ﾏｽﾀ\coaﾒｰﾙ送信関連\輸出成績作成表.xlsx'
         if platform.system() == 'Linux':
             path = r'/mnt/guest/輸出塗料連絡表.xlsx'
-            self.coa_path = r'/mnt/public/営業課ﾌｫﾙﾀﾞ/testreport/輸出' 
-            self.YSSH_path = r'/mnt/public/技術課ﾌｫﾙﾀﾞ/200. effit_data' \
+            self._coa_path = r'/mnt/public/営業課ﾌｫﾙﾀﾞ/testreport/輸出' 
+            self._YSSH_path = r'/mnt/public/技術課ﾌｫﾙﾀﾞ/200. effit_data' \
                              r'/ﾏｽﾀ/coaﾒｰﾙ送信関連/輸出成績作成表.xlsx'
-        self.output_path = r'\\192.168.1.247\共有\営業課ﾌｫﾙﾀﾞ\testreport\輸出'
+        self._output_path = r'\\192.168.1.247\共有\営業課ﾌｫﾙﾀﾞ\testreport\輸出'
         
         df = pd.read_excel(path, sheet_name='輸出塗料連絡表', skiprows=1)
         # 発送日と納入日を'%Y/%m/%d'にする
@@ -65,75 +67,82 @@ class CreateExportCoa:
                                          if type(x) == datetime.datetime else x)
 
         # 成績表記載名称が"-"は成績書不要
-        self.YTR = df[(df['発送日'] == zenjitu) & \
+        self._YTR = df[(df['発送日'] == zenjitu) & \
                           (df['成績表記載名称'] != '-')].reset_index(drop=True)
         
         # 納入日のリストを作る
-        nounyubis: List[str] = list(set(self.YTR['納品日']))
+        nounyubis: List[str] = list(set(self._YTR['納品日']))
 
         first_path:str = r'//192.168.1.247/共有/営業課ﾌｫﾙﾀﾞ/testreport/zip_files'
         if platform.system() == 'Linux':
             first_path:str = r'/mnt/public/営業課ﾌｫﾙﾀﾞ/testreport/zip_files'
 
         # zip_files/送信済のファイル名リストを取得する
-        self.sentCoas: List[str] = [] # zip_files/送信済のpdfファイル名リスト
+        self._sentCoas: List[str] = [] # zip_files/送信済のpdfファイル名リスト
         for nounyuu_dire in nounyubis:
-            nounyuu_dire = f'{nounyuu_dire[:4]}{nounyuu_dire[5:7]}{nounyuu_dire[8:]}'
+            nounyuu_dire = \
+                    f'{nounyuu_dire[:4]}{nounyuu_dire[5:7]}{nounyuu_dire[8:]}'
             path = f'{first_path}/{nounyuu_dire}/送信済'
+            # 方法1: isdir() - ディレクトリの存在を確認（推奨）
             # zip_files/送信済のファイル名リストを取得する
-            self.sentCoas += \
+            if os.path.isdir(path):
+                self._sentCoas += \
                        args.listContentsOfZipFiles.list_contents_of_zip_files(path)
 
 
         # is_Exists_coa 列（既にcoaがあるか？）を作る
-        # 追加引数はタプルとして渡すので(self.coa_path, ) コンマが必要
+        # 追加引数はタプルとして渡すので(self._coa_path, ) コンマが必要
         # ['is_exists_coa']は初物は除外する。['already_sent_coa_exists']は
         # 初物チェックはしない
-        if not self.YTR.empty:
-            self.YTR['is_exists_coa'] = self.YTR.apply(
+        if not self._YTR.empty:
+            self._YTR['is_exists_coa'] = self._YTR.apply(
                     coa_check.is_existsCoa_noHatumono_seriesArgs, 
-                    axis=1, args=(self.coa_path,)
+                    axis=1, args=(self._coa_path,)
                     )
-            self.YTR['already_sent_coa_exists'] = self.YTR.apply(
+            self._YTR['already_sent_coa_exists'] = self._YTR.apply(
                     coa_check.is_existsCoa_seriesArgs, 
-                    axis=1, args=(self.sentCoas,))
+                    axis=1, args=(self._sentCoas,))
 
-        # HSとMHSからlotのリストを得る。輸出塗料連絡表のLotがどちらのデータベースに
+        # _HSと_MHSからlotのリストを得る。輸出塗料連絡表のLotがどちらのデータベースに
         # あるかを判定して、成績書を作成する
         df_HS = args.fetch_HS_lot.fetch_data()
-        self.HS_lots: List[str] = list(df_HS['LOT'])
+        self._HS_lots: List[str] = list(df_HS['LOT'])
 
         df_MHS = args.fetch_MHS_lot.fetch_data()
-        self.MHS_lots: List[str] = list(df_MHS['LOT'])
+        self._MHS_lots: List[str] = list(df_MHS['LOT'])
 
 
-    def create_coa(self)-> List[List[str]]:
+    def create_coa(self)-> None:
 
-        if self.YTR.empty:
-            return []
+        if self._YTR.empty:
+            txt = '新たに作成する輸出の成績書はありません'
+            self._recorder.out_log(txt)
+            self._recorder.out_file(txt)
+            return 
 
         # 全部ありなら、何もしない
-        if (self.YTR['is_exists_coa'] == True).all():
-            return []
-
-        nonCreate_coa = [] 
-        HS_nonCreate_coa = []
-        MHS_nonCreate_coa = []
+        if (self._YTR['is_exists_coa'] == True).all():
+            txt = '新たに作成する輸出の成績書はありません'
+            self._recorder.out_log(txt)
+            self._recorder.out_file(txt)
+            return 
 
         # 輸出生成期作成表を取得する
-        YSSH = pd.read_excel(self.YSSH_path,  skiprows=3)
+        YSSH = pd.read_excel(self._YSSH_path,  skiprows=3)
         mksk_dic = dict(zip(YSSH['輸出塗料連絡表表記'], 
                                                      YSSH['userform1combobox']))
 
         # 輸出塗料連絡表で成績書が存在しない、かつ送信済でない行でループする
-        YTR_false = self.YTR[(self.YTR['is_exists_coa'] == False) & 
-            (self.YTR['already_sent_coa_exists']== False)].reset_index(drop=True) 
+        YTR_false = self._YTR[(self._YTR['is_exists_coa'] == False) & 
+            (self._YTR['already_sent_coa_exists']== False)].reset_index(drop=True) 
         if YTR_false.empty:
-            txt = '新たに作成する成績書はありません'
-            self.recorder.out_log(txt)
-            self.recorder.out_file(txt)
-            return []
+            txt = '新たに作成する輸出の成績書はありません'
+            self._recorder.out_log(txt)
+            self._recorder.out_file(txt)
+            return 
 
+
+        nonCreate_coa: List = []
         for i in range(len(YTR_false)):  
             mksk:str = mksk_dic[YTR_false.loc[i, '行き先']]
             ikisaki:str = YTR_false.loc[i, '行き先']
@@ -142,44 +151,56 @@ class CreateExportCoa:
             order_no = YTR_false.loc[i, 'オーダーナンバー']
 
             txt = (f'{ikisaki},{lot},{name},{order_no}の成績書作成中')
-            self.recorder.out_log(txt, '\n')
+            self._recorder.out_log(txt, '\n')
                   
             # 品室管理にある場合
-            if lot in self.HS_lots:
-                is_success_or_failed_HS: str = self.HS.create_coa(lot, 
-                                                         self.output_path, mksk)
+            if lot in self._HS_lots:
+                is_success_or_failed_HS: str = self._HS.create_coa(lot, 
+                                                         self._output_path, mksk)
                 if is_success_or_failed_HS != 'success':
                     line: List[str] = [mksk, lot, name, order_no ]
                     line.append(is_success_or_failed_HS)
-                    HS_nonCreate_coa.append(line)
-            elif lot in self.MHS_lots: # メタル品質管理にある場合
-                is_success_or_failed_MHS: str = self.MHS.create_coa(lot, 
-                                                      self.output_path)
+                    nonCreate_coa.append(line)
+            elif lot in self._MHS_lots: # メタル品質管理にある場合
+                is_success_or_failed_MHS: str = self._MHS.create_coa(lot, 
+                                                      self._output_path)
                 if is_success_or_failed_MHS != 'success':
                     line: List[str] = [mksk, lot, name, order_no ]
                     line.append(is_success_or_failed_MHS)
-                    MHS_nonCreate_coa.append(line)
+                    nonCreate_coa.append(line)
             else:
                 line: List[str] = [mksk, lot, name, order_no, 'データベースにLotなし' ]
                 nonCreate_coa.append(line)
 
             # 初物チェックして初物だったらnonCreate_coaにappendする
-            if coa_check.is_hatumono(ikisaki, lot, order_no, self.coa_path):
+            if coa_check.is_hatumono(ikisaki, lot, order_no, self._coa_path):
                 nonCreate_coa.append([mksk, lot, name, order_no, '初物NG'])
                 print('↑ 初物です')
             #self.warning_hatumono(coa_folder)
 
-        return nonCreate_coa
+        self._logout(nonCreate_coa)
 
+
+    def _logout(self, nonCreate_coa)-> None:
+        if not nonCreate_coa:
+            nonCreate_coa.append('成績書作成で失敗はありません')
+
+        print()
+        print('(成績書作成で失敗したcoa)')
+        pprint.pprint(nonCreate_coa)
+        self._recorder.out_file_from_list_list(nonCreate_coa, '(成績書作成で失敗したcoa)')
 
 
     def to_log_YTR(self)-> None:
         # DataFrameでcastしないとpyrightがSeriesになるかもしれないと警告だす。
-        df:pd.DataFrame = cast(pd.DataFrame,self.YTR[['行き先', 
+        if self._YTR.empty:
+            return
+
+        df:pd.DataFrame = cast(pd.DataFrame,self._YTR[['行き先', 
                                                       'オーダーナンバー', 
                                                       '品名', 
                                                       'is_exists_coa', 
                                                       'already_sent_coa_exists']])
-        self.recorder.out_file_from_df(df, 
+        self._recorder.out_file_from_df(df, 
                              '(既存で初物でない成績書:-2列、送信済成績書:-1列)')
         

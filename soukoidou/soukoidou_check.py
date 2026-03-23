@@ -43,9 +43,18 @@ class SoukoidouCheck:
         # 合格品の数をプラスしたinspect_shipping_productsをもらう
         shipping_products_plus_goukaku: Dict = \
                                self._inventorySurvey.plus_kensa_goukaku()
+
+        if not shipping_products_plus_goukaku:
+            txt = '今回、倉庫移動する製品はありません。'
+            self._recorder.out_log(txt, '\n')
+            self._recorder.out_file(txt)
+            return False
+
         # 引当後にマイナスになる在庫のdicをもらう
         minus_inventorys: Dict = self.minus_inventorys(
                                             shipping_products_plus_goukaku)
+        print('shipping_products_plus_goukaku>>>>>>>>>>>>>>>>>>>>>>')
+        print(shipping_products_plus_goukaku)
         
         if minus_inventorys:
             txt = f'以下のとおりマイナス在庫があるため倉庫移動できません' \

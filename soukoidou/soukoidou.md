@@ -13,23 +13,9 @@
 ### ソースコード
 GitHub Publicリポジトリで公開</br>
 [GitHub_ https://github.com/ogashira/DigitalManager](https://github.com/ogashira/DigitalManager)
-
-| soukoidou                        | soukoidou2                | 
-| :---                             | :---                      | 
-|  main.py                         | main2.py                  | 
-|  soukoidou.py                    | soukoidou2.py             | 
-|  eigyoubi.py                     | eigyoubi.py               |
-|  uninspected_products_survey.py  | inventory_survey.py       |                          
-|  inventory_survey.py             | soukoidou_check.py        |
-|  create_export_coa.py            | create_koito_coa.py       |
-|  fetch_data.py                   |                           |
-|  recorder.py                     |                           |
-|  cybozu.py                       |                           |
-  
 ### 起動方法
 ##### soukoidou
 - `Winボタン+R -> soukoidou入力 -> Enter`または`DigitalManager/soukoidou`デイレクトリ内にて`python main.py`で実行
-
 ### 動作
 #### 「成績書作成」ToyoKogyoHsRepBat.exe, TyoKogyoMhsRepBat.exe
 - returncode 
@@ -96,6 +82,106 @@ self.inspect_shipping_products: Dict= {'S6-SV3800-U':{'出荷':20, '現在庫':1
 ### クラス図
 ```mermaid
 ---
+title: Soukoidou
+---
+classDiagram
+direction TB
+
+class Main{
+    + main()void
+}
+class Soukoidou{
+    + soukoidou2()void
+}
+class Eigyoubi{
+    - _holidays: List
+    + get_before_today()str
+    + get_after_today()str
+    + get_honjitu()str
+    + get_six_months_ago()str
+    + get_Ymd_HMS()str
+}
+class InstanceFactory{
+    - _sqlServerTss: Any
+    - _sqlServerEffit: Any
+    - _cnxn_tss
+    - _cnxn_effit
+    - _instances: Dict~str,Any
+    + _setup_sql_path()None*
+    + get_instance()instance*
+}
+class IFetchData{
+    <<interface>>
+    + fetch_data()pd.DataFrame*
+}
+class FetchHolidays{
+    + fetch_data(cnxn)pd.DataFrame
+}
+class FetchYotei{
+    + fetch_data(cnxn, yokujitu)pd.DataFrame
+}
+class FetchInspectProducts{
+    + fetch_data(cnxn)pd.DataFrame
+}
+class ICybozu{
+    <<interface>>
+    - _login_name
+    - _login_pass
+    - _driver
+    + put_cybozu()None*
+}
+class CybozuForSoukoidou{
+    - _inventorySurvey: InventorySurvey
+    - _uninspectedProductsSurvey: UninspectedProductsSurvey
+    - _recorder: Recorder
+    + put_cybozu()None
+}
+class CybozuForSoukoidou2{
+    + put_cybozu()None
+}
+class InventorySurvey{
+    - _plusKensaGoukaku: PlusKensaGoukaku
+    - _inspect_shipping_products:Dict[str, Dict[str, int]]
+    + plus_kensa-goukaku()Dict[str, Dict[str, int]]
+    + calc_inspect_shipping_products()->Dict[str, Dict[str, int]]
+    + txt_for_cybozu()str
+    + make_txt_for_Dict_Dict(Dict[str, Dict[str, int]])str
+}
+class UninspectedProductsSurvey{
+    - _df_hk
+    - _df_mhk
+    + txt_for_cybozu()str
+}
+class CreateExportCoa{
+    - _recorder: Recorder
+    - _HS: ITssCoa
+    - _MHS: ITssCoa
+    - _coa_path: str
+    - _YSSH_path: str
+    - _output_path
+    - _YTR: pd.DataFrame
+    - _centCoas: List~str~
+    + create_coa()None
+    + to_log_YTR()None
+    - _logout(List~List~str~~)None
+}
+Main --> Soukoidou
+Soukoidou --> Eigyoubi
+Soukoidou --> InstanceFactory
+InstanceFactory --> IFetchData
+IFetchData <|.. FetchHolidays
+IFetchData <|.. FetchYotei
+IFetchData <|.. FetchInspectProducts
+Soukoidou --> ICybozu
+ICybozu <|.. CybozuForSoukoidou
+ICybozu <|.. CybozuForSoukoidou2
+CybozuForSoukoidou o-- InventorySurvey
+CybozuForSoukoidou o-- UninspectedProductsSurvey
+Soukoidou --> CreateExportCoa
+```
+
+```mermaid
+---
 title: Soukoidou2
 ---
 classDiagram
@@ -109,11 +195,11 @@ class Soukoidou2{
 }
 class Eigyoubi{
     - _holidays: List
-    + get_before_today()-> str
-    + get_after_today()-> str
-    + get_honjitu()-> str
-    + get_six_months_ago()-> str
-    + get_Ymd_HMS()-> str
+    + get_before_today()str
+    + get_after_today()str
+    + get_honjitu()str
+    + get_six_months_ago()str
+    + get_Ymd_HMS()str
 }
 class InstanceFactory{
     - _sqlServerTss: Any
@@ -121,16 +207,29 @@ class InstanceFactory{
     - _cnxn_tss
     - _cnxn_effit
     - _instances: Dict~str,Any
-    + *_setup_sql_path()-> None*
-    + *get_instance()-> instance*
+    + *_setup_sql_path()None*
+    + *get_instance()instance*
+}
+class IFetchData{
+    <<interface>>
+    + fetch_data()pd.DataFrame*
+}
+class FetchHolidays{
+    + fetch_data(cnxn)pd.DataFrame
+}
+class FetchYotei{
+    + fetch_data(cnxn, yokujitu)pd.DataFrame
+}
+class FetchInspectProducts{
+    + fetch_data(cnxn)pd.DataFrame
 }
 class InventorySurvey{
     - _plusKensaGoukaku: PlusKensaGoukaku
     - _inspect_shipping_products:Dict[str, Dict[str, int]]
     + plus_kensa-goukaku()->Dict[str, Dict[str, int]]
     + calc_inspect_shipping_products()->Dict[str, Dict[str, int]]
-    + txt_for_cybozu()-> str
-    + make_txt_for_Dict_Dict(Dict[str, Dict[str, int]])-> str
+    + txt_for_cybozu()str
+    + make_txt_for_Dict_Dict(Dict[str, Dict[str, int]])str
 }
 class PlusKensaGoukaku{
     - _nonSumis: Dict[str, int]
@@ -141,7 +240,7 @@ class SoukoidouCheck{
     - _abTestCheck: ABTestCheck
     - _recorder: Recorder
     + minus_inventorys(Dict[str, Dict[str, int]])->Dict[str, Dict[str, int]]
-    + check_is_soukoidou_ok()-> bool
+    + check_is_soukoidou_ok()bool
 }
 class ABTestCheck{
     - _createKoitoCoa: CreateKoitoCoa
@@ -152,14 +251,14 @@ class ABTestCheck{
     - _hinmeis: Dict[str, List~str~]
     - _passed_koitos_thistime: pd.DataFrame
     - _passed_koitos_sumi: pd.DataFrame
-    + check_is_abTest_ok()-> bool
-    + find_koito_lastLot_count(pd.Series)-> int
-    + find_koito_lastLot(pd.Series)-> str
-    + make_hinmeis(ps.DataFrame)-> Dict[str, List~str~]
-    + input_to_BsikenKanriSheet()-> None
-    + save_workbook(workBook)->None
-    + get_input_col(str, int, worksheet)-> int
-    + get_lastLot_row(str, int, worksheet)-> int
+    + check_is_abTest_ok()bool
+    + find_koito_lastLot_count(pd.Series)int
+    + find_koito_lastLot(pd.Series)str
+    + make_hinmeis(ps.DataFrame)Dict[str, List~str~]
+    + input_to_BsikenKanriSheet()None
+    + save_workbook(workBook)None
+    + get_input_col(str, int, worksheet)int
+    + get_lastLot_row(str, int, worksheet)int
 }
 class CreateKoitoCoa{
     - coa_check:import module
@@ -168,13 +267,17 @@ class CreateKoitoCoa{
     - self._check_path
     - self._output_path
     + create_koito_coa(pd.DataFrame)->None
-    - _is_exists_koito_coa(str)-> bool
-    - _is_hatumono_koito(str)-> bool
+    - _is_exists_koito_coa(str)bool
+    - _is_hatumono_koito(str)bool
 }
 Main2 --> Soukoidou2
 Soukoidou2 --> Eigyoubi
 Soukoidou2 --> InstanceFactory
 Soukoidou2 --> SoukoidouCheck
+InstanceFactory --> IFetchData
+IFetchData <|.. FetchHolidays
+IFetchData <|.. FetchYotei
+IFetchData <|.. FetchInspectProducts
 PlusKensaGoukaku "1" --o "1" InventorySurvey
 CreateKoitoCoa "1" --o "1" ABTestCheck
 ABTestCheck "1" --o "1" SoukoidouCheck

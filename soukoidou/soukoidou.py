@@ -1,6 +1,6 @@
 from typing import List, TYPE_CHECKING
 import pprint
-from cybozu import *
+from toss_to_cybozu import TossToCybozu
 from instance_factory import InstanceFactory
 
 # 実行時にはインポートせず、型チェックの為だけに書く　
@@ -39,68 +39,29 @@ def soukoidou()->None:
     print(msg)
 
     '''
-    翌営業日出荷予定製品の在庫があるかどうか調べる。
-    営業部で既に出荷処理を行っていれば、出荷予定製品として出てこないようにした。
-    '''
-    inventory_survey:InventorySurvey = InstanceFactory.get_inventory_survey(
-                                                                       yokujitu)
-
-    # サイボウズメッセージ用のテキスト
-    mytxt_zaiko = inventory_survey.txt_for_cybozu()
-
-    '''
-    品質管理、メタル品質管理から検査未完了のデータを持ってくる
-    '''
-    uninspected_products_survey: UninspectedProductsSurvey = \
-                           InstanceFactory.get_uninspected_products_survey()
-    # サイボウズメッセージ用のテキスト
-    mytxt_hs_mhs = uninspected_products_survey.txt_for_cybozu()
-
-    mytxt = f'{mytxt_hs_mhs}\n\n' \
-            f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n' \
-            f'{mytxt_zaiko}'
-
-    # コンソール表示とtxt出力
-    recorder.out_log(mytxt)
-    recorder.out_file(mytxt)
-
-    '''
     成績書作成
     輸出塗料連絡表(CreateExportCoaクラス)で昨日出荷製品を調べて、
     testreport/輸出フォルダに 成績書があるか調べる。無ければ作る
     '''
     #TODO後で消す
-    zenjitu = '2025/12/23'
+    zenjitu = '2026/03/31'
 
     create_export_coa: CreateExportCoa = \
                 InstanceFactory.get_create_export_coa(zenjitu, 
                                                       six_months_ago)
-
-    nonCreate_coa: List[List[str]] = create_export_coa.create_coa()
-
-
+    # 輸出成績書を作成する
+    create_export_coa.create_coa()
     # 既存で初物でない成績書、送信済成績書がわかるdfをlogに書いておく
     create_export_coa.to_log_YTR()
 
-
-    print()
-    print('(成績書作成で失敗したcoa)')
-    pprint.pprint(nonCreate_coa)
-    recorder.out_file_from_list_list(nonCreate_coa, '(成績書作成で失敗したcoa)')
-
-    # メッセージをサイボウズにアップする
-    try:
-        put_cybozu(mytxt)
-        msg = 'サイボウズに未検査品と在庫状況をアップしました。'
-        recorder.out_log(msg, '\n')
-        recorder.out_file(msg, '\n')
-    except Exception as e:
-        msg = 'サイボウズへのアップ失敗です。'
-        recorder.out_log(msg)
-        recorder.out_log(f'{e}', '\n')
-        recorder.out_file(msg)
-        recorder.out_file(f'{e}', '\n')
-        
+    '''
+    Cybozuクラスを呼び出して、品質管理、メタル品質管理の未検査品情報および
+    翌日出荷品の情報をサイボウズにアップする。
+    未検査品情報はUninspectedProductSurveyクラス。
+    翌日出荷品の情報はInventorySurveyクラス
+    '''
+    tossToCybozu: TossToCybozu = InstanceFactory.get_tossToCybozu(yokujitu)
+    tossToCybozu.create_txt_for_cybozuSoukoidou()
 
     # sqlServer.close()を呼び出して、server, cnxnを閉じる
     InstanceFactory.delete_cnxn()

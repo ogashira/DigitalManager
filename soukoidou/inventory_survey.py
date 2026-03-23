@@ -46,12 +46,10 @@ class InventorySurvey:
         # self._inspect_shipping_products= 
         #         { 'S6-SV3800-U':{'出荷缶数':20, '現在庫':100, '引当後':80}, ....}
         self._inspect_shipping_products = self.calc_inspect_shipping_products()
-        
 
     def plus_kensa_goukaku(self)-> Dict:
         return self.plusKensaGoukaku.plus_goukaku(
                                               self._inspect_shipping_products)
-
     
     def calc_inspect_shipping_products(self)-> Dict:
         # 出荷処理していない翌日出荷製品を求める。

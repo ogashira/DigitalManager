@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from create_koito_coa import CreateKoitoCoa
     from ab_test_check import ABTestCheck
     from plus_kensa_goukaku import PlusKensaGoukaku
+    from toss_to_cybozu import TossToCybozu
+    from soukoidou_csv import SoukoidouCsv
+    from effitA import EffitA
 
 class InstanceFactory:
     '''
@@ -187,6 +190,15 @@ class InstanceFactory:
         return cls._instances[ins_name]
 
     @classmethod
+    def get_fetch_syukko(cls, honjitu) -> IFetchData:
+        from fetch_data import FetchSyukko
+        ins_name: str = 'fetch_syukko'
+        if ins_name not in cls._instances:
+            cls.get_sql_server_effit()
+            cls._instances[ins_name] = FetchSyukko(cls._cnxn_effit, honjitu)
+        return cls._instances[ins_name]
+
+    @classmethod
     def get_listContentsOfZipFiles(cls):
         from list_contents_of_zip_files import ListContentsOfZipFiles
         return ListContentsOfZipFiles()
@@ -244,9 +256,13 @@ class InstanceFactory:
     @classmethod
     def get_uninspected_products_survey(cls) -> "UninspectedProductsSurvey":
         from uninspected_products_survey import UninspectedProductsSurvey
+        ins_name = 'uninspected_products_survey'
         fetchHk = cls.get_fetchHk()
         fetchMhk = cls.get_fetchMhk()
-        return UninspectedProductsSurvey(fetchHk, fetchMhk)
+        if ins_name not in cls._instances:
+            cls._instances[ins_name] = \
+                          UninspectedProductsSurvey(fetchHk, fetchMhk)
+        return cls._instances[ins_name]
 
     @classmethod
     def get_create_export_coa(cls, zenjitu, six_months_ago) -> "CreateExportCoa":
@@ -301,6 +317,44 @@ class InstanceFactory:
         if ins_name not in cls._instances:
             cls._instances[ins_name] = ABTestCheck(fetchKoitoKensa,
                                                    createKoitoCoa,
+                                                   cls._instances['recorder'])
+
+        return cls._instances[ins_name]
+
+    @classmethod
+    def get_tossToCybozu(cls, yokujitu) -> "TossToCybozu":
+        from toss_to_cybozu import TossToCybozu
+        ins_name = 'TossToCybozu'
+        inventorySurvey: InventorySurvey = cls.get_inventory_survey(yokujitu)
+        uninspectedProductsSurvey: UninspectedProductsSurvey = \
+                                        cls.get_uninspected_products_survey()
+        if ins_name not in cls._instances:
+            tossToCybozu: TossToCybozu = TossToCybozu(inventorySurvey, 
+                                                   uninspectedProductsSurvey,
+                                                  cls._instances['recorder'])
+            cls._instances[ins_name] = tossToCybozu
+
+        return cls._instances[ins_name]
+
+
+    @classmethod
+    def get_soukoidouCsv(cls, honjitu) -> "SoukoidouCsv":
+        from soukoidou_csv import SoukoidouCsv
+        ins_name = 'soukoidouCsv'
+        fetchSyukko:IFetchData = cls.get_fetch_syukko(honjitu)
+        if ins_name not in cls._instances:
+            cls._instances[ins_name] = SoukoidouCsv(fetchSyukko,
+                                                    cls._instances['recorder'])
+
+        return cls._instances[ins_name]
+
+    @classmethod
+    def get_effitA(cls, honjitu) -> "EffitA":
+        from effitA import EffitA
+        soukoidouCsv:SoukoidouCsv = cls.get_soukoidouCsv(honjitu)
+        ins_name = 'effitA'
+        if ins_name not in cls._instances:
+            cls._instances[ins_name] = EffitA(soukoidouCsv, 
                                                    cls._instances['recorder'])
 
         return cls._instances[ins_name]

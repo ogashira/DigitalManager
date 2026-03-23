@@ -1,7 +1,8 @@
-from typing import Dict, TYPE_CHECKING
+from typing import List, TYPE_CHECKING
 import pprint
 from instance_factory import InstanceFactory
-from cybozu import *
+from cybozu import ICybozu
+import sys
 
 # 実行時にはインポートせず、型チェックの為だけに書く　
 if TYPE_CHECKING:
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
     from soukoidou_check import SoukoidouCheck
     from create_koito_coa import CreateKoitoCoa
     from ab_test_check import ABTestCheck
+    from effitA import EffitA
 
 
 def soukoidou2()->None:
@@ -50,7 +52,21 @@ def soukoidou2()->None:
     # check_is_soukoidou_okの中でcreate_koito_coaも呼ばれる
     is_soukoidou_ok:bool = soukoidouCheck.check_is_soukoidou_ok()
 
+    # 倉庫移動を行う
+    if is_soukoidou_ok:
+        effitA:EffitA = InstanceFactory.get_effitA(honjitu)
+        effitA.soukoidou()
+        # 倉庫移動が問題なく行われたかをチェックする 
+        failed_soukoidous: List[List[str]] = effitA.check_before_after()
 
-    
+    # サイボウズにアップする
+    cybozuForSoukoidou2: ICybozu = \
+            InstanceFactory.get_cybozuForSoukoidou2(is_soukoidou_ok)
+    cybozuForSoukoidou2.put_cybozu()
+
     # sqlServer.close()を呼び出して、server, cnxnを閉じる
     InstanceFactory.delete_cnxn()
+
+    txt = 'プログラムは全て終了です'
+    recorder.out_log(txt, '\n')
+    recorder.out_file(txt, '\n')

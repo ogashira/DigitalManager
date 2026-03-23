@@ -1,0 +1,10 @@
+services:
+  python-app:
+    build: .
+    volumes:
+      - .:/app
+      - /mnt/public:/mnt/public
+      - /mnt/guest:/mnt/guest
+    working_dir: /app
+    tty: true
+    stdin_open: true
