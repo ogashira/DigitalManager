@@ -6,7 +6,7 @@ import os
 import sys
 
 from soukoidou_csv import SoukoidouCsv
-from recorder import Recorder
+from mymodules.recorder import Recorder
 
 
 class EffitA:
@@ -38,10 +38,10 @@ class EffitA:
         time.sleep(5)
 
         myclc = pyautogui.locateOnScreen(
-                r'C:\MyPythonScripts\soukoidou2\effita_png\caps_error.png'
+                r'C:\DigitalManager\pngs\effita_png\caps_error.png'
                 )
 
-        if myclc != None:
+        if myclc is not  None:
             pyautogui.typewrite(['capslock'])
             pyautogui.typewrite(['enter'])
             pyautogui.typewrite(['tab','tab'])
@@ -70,10 +70,11 @@ class EffitA:
 
 
         myclc = pyautogui.locateOnScreen(
-                r'C:\MyPythonScripts\soukoidou2\soukoidou_png\data_torikomi.png'
+                r'C:\DigitalManager\pngs\soukoidou_png\data_torikomi.png'
                 )
-        clc_cent = pyautogui.center(myclc)
-        pyautogui.click(clc_cent)
+        if myclc is not None:
+            clc_cent = pyautogui.center(myclc)
+            pyautogui.click(clc_cent)
         pyautogui.typewrite(['enter'])
         pyautogui.typewrite(['enter'])
         time.sleep(20)
@@ -81,20 +82,22 @@ class EffitA:
         time.sleep(5)
 
         myclc = pyautogui.locateOnScreen(
-                r'C:\MyPythonScripts\soukoidou2\soukoidou_png\data_check.png'
+                r'C:\DigitalManager\pngs\soukoidou_png\data_check.png'
                 )
-        clc_cent = pyautogui.center(myclc)
-        pyautogui.click(clc_cent)
+        if myclc is not None:
+            clc_cent = pyautogui.center(myclc)
+            pyautogui.click(clc_cent)
         time.sleep(30)
         pyautogui.typewrite(['enter'])
         time.sleep(5)
 
 
         myclc = pyautogui.locateOnScreen(
-                r'C:\MyPythonScripts\soukoidou2\soukoidou_png\data_kousin.png'
+                r'C:\DigitalManager\pngs\soukoidou_png\data_kousin.png'
                 )
-        clc_cent = pyautogui.center(myclc)
-        pyautogui.click(clc_cent)
+        if myclc is not None:
+            clc_cent = pyautogui.center(myclc)
+            pyautogui.click(clc_cent)
         pyautogui.typewrite(['enter'])
         time.sleep(30)
         pyautogui.typewrite(['enter'])
@@ -102,10 +105,11 @@ class EffitA:
 
 
         myclc = pyautogui.locateOnScreen(
-                r'C:\MyPythonScripts\soukoidou2\soukoidou_png\data_sakujo.png'
+                r'C:\DigitalManager\pngs\soukoidou_png\data_sakujo.png'
                 )
-        clc_cent = pyautogui.center(myclc)
-        pyautogui.click(clc_cent)
+        if myclc is not None:
+            clc_cent = pyautogui.center(myclc)
+            pyautogui.click(clc_cent)
         time.sleep(2)
         pyautogui.typewrite(['enter'])
         time.sleep(2)
@@ -114,18 +118,20 @@ class EffitA:
 
 
         myclc = pyautogui.locateOnScreen(
-                r'C:\MyPythonScripts\soukoidou2\soukoidou_png\end.png'
+                r'C:\DigitalManager\pngs\soukoidou_png\end.png'
                 )
-        clc_cent = pyautogui.center(myclc)
-        pyautogui.click(clc_cent)
+        if myclc is not None:
+            clc_cent = pyautogui.center(myclc)
+            pyautogui.click(clc_cent)
         time.sleep(1)
 
         #倉庫移動画面終了
         myclc = pyautogui.locateOnScreen(
-                r'C:\MyPythonScripts\soukoidou2\effita_png\syuuryou.png'
+                r'C:\DigitalManager\pngs\effita_png\syuuryou.png'
                 )
-        clc_cent = pyautogui.center(myclc)
-        pyautogui.click(clc_cent)
+        if myclc is not None:
+            clc_cent = pyautogui.center(myclc)
+            pyautogui.click(clc_cent)
         #effita終了
 
     def check_before_after(self)-> List[List[str]]:

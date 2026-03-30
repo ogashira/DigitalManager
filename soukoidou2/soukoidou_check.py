@@ -44,24 +44,22 @@ class SoukoidouCheck:
         shipping_products_plus_goukaku: Dict = \
                                self._inventorySurvey.plus_kensa_goukaku()
 
-        if not shipping_products_plus_goukaku:
-            txt = '今回、倉庫移動する製品はありません。'
-            self._recorder.out_log(txt, '\n')
-            self._recorder.out_file(txt)
-            return False
-
         # 引当後にマイナスになる在庫のdicをもらう
         minus_inventorys: Dict = self.minus_inventorys(
                                             shipping_products_plus_goukaku)
-        print('shipping_products_plus_goukaku>>>>>>>>>>>>>>>>>>>>>>')
-        print(shipping_products_plus_goukaku)
-        
         if minus_inventorys:
             txt = f'以下のとおりマイナス在庫があるため倉庫移動できません' \
             f'{self._inventorySurvey.make_txt_for_Dict_Dict(minus_inventorys)}'
             self._recorder.out_log(txt, '\n')
             self._recorder.out_file(txt)
             return False # False
+
+        if not shipping_products_plus_goukaku:
+            txt = '今回、倉庫移動する製品はありませんpass。'
+            self._recorder.out_log(txt, '\n')
+            self._recorder.out_file(txt)
+            return False
+
 
         # passed_koitos_thistimeが空ならTrue
         if self._abTestCheck.is_empty_passed_koitos_thistime():

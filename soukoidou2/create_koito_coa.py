@@ -35,10 +35,12 @@ class CreateKoitoCoa:
     櫻田フォルダにnon初物の小糸成績書がなかったら作る
     '''
 
-    def __init__(self, tssCoaFromHs: ITssCoa, recorder: Recorder)-> None:
+    def __init__(self, tssCoaFromHs: ITssCoa, 
+                                       recorder: Recorder, honjitu)-> None:
 
         self._tssCoaFromHs: ITssCoa = tssCoaFromHs
         self._recorder: Recorder = recorder
+        self._honjitu = honjitu
 
         self.check_path = r'\\192.168.1.247\共有\営業課ﾌｫﾙﾀﾞ\testreport\櫻田'
         if platform.system() == 'Linux':
@@ -51,10 +53,25 @@ class CreateKoitoCoa:
 
 
     def _is_hatumono_koito(self, lot)-> bool:
-        return coa_check.is_hatumono_koito(lot, self.check_path)
+        honjitu_num = self._honjitu[:4] + self._honjitu[5:7] + self._honjitu[8:]
+        return coa_check.is_hatumono_koito(lot, honjitu_num, self.check_path)
 
 
     def create_koito_coa(self, passed_koitos_thistime)-> None:
+
+        def _add_to_line(line: List, returncode: int)-> List:
+            if returncode ==0:
+                line.append("何らかの失敗")
+                return line
+            if returncode ==1:
+                return []
+            if returncode == 2:
+                line.append("初物NG")
+                return line
+            if returncode > 3:
+                line.append(f"作成できない(returncode={returncode})")
+                return line
+        
         HS_nonCreate_coa = []
         for _, row in passed_koitos_thistime.iterrows():
             lot = row['LOT']
@@ -65,12 +82,12 @@ class CreateKoitoCoa:
                 self._recorder.out_file(txt, '\n')
                 continue
 
-
-            is_success_or_failed: str = self._tssCoaFromHs.create_coa(lot, 
+            line_base: List[str] = [row['Hinban'], lot, '小糸向け']
+            returncode: int = self._tssCoaFromHs.create_coa(lot, 
                                                      self.output_path, '小糸')
-            if is_success_or_failed != 'success':
-                line: List[str] = [row['Hinban'], lot, '小糸向け']
-                line.append(is_success_or_failed)
+
+            line = _add_to_line(line_base, returncode)
+            if line:
                 HS_nonCreate_coa.append(line)
 
             if self._is_hatumono_koito(lot):

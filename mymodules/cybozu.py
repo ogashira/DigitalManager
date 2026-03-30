@@ -1,3 +1,6 @@
+import sys
+import os
+from pathlib import Path
 import time
 import configparser
 from abc import ABC, abstractmethod
@@ -9,15 +12,28 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 
-from uninspected_products_survey import UninspectedProductsSurvey
-from inventory_survey import InventorySurvey
 from recorder import Recorder
 
 class ICybozu(ABC):
 
     def __init__(self)-> None:
+
+        if getattr(sys, 'frozen', False):
+            # PyInstallerでexe化された場合、EXEがあるフォルダを起点にする
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            # 開発時（通常のPython実行）
+            # ~/projects/DigitalManager/mymodules/cybozu.py の 2つ上のディレクトリ
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+        INI_PATH = os.path.join(base_dir, "cybozu_ini", "cybozu.ini")
+
         config = configparser.ConfigParser()
-        config.read('cybozu.ini')
+        config.read(INI_PATH)
+        
+        if 'cybozu' not in config:
+            raise FileNotFoundError(f"設定ファイルが見つからないか、形式が正しくありません: {INI_PATH}")
+
         self._login_name = config['cybozu']['id']
         self._login_pass = config['cybozu']['password']
 
@@ -42,80 +58,63 @@ class ICybozu(ABC):
         time.sleep(10)
 
     @abstractmethod
-    def put_cybozu(self)-> None:
+    def put_cybozu(self, txt)-> bool:
         pass
 
 
 class CybozuForSoukoidou(ICybozu):
 
-    def __init__(self, txt)-> None:
+    def __init__(self)-> None:
         super().__init__()
-        self._txt = txt
 
-    def put_cybozu(self)-> None:
+
+    def put_cybozu(self, txt)-> bool:
         
         try:
-            #element = self._driver.find_element_by_xpath("//*[text()=\"品質検査管理について\"]")
-            element = self._driver.find_element(By.XPATH, "//*[text()=\"soukoidou_test\"]")
+            element = self._driver.find_element(By.XPATH, "//*[text()=\"品質検査管理について\"]")
+            #element = self._driver.find_element(By.XPATH, "//*[text()=\"soukoidou_test\"]")
             self._driver.execute_script("arguments[0].click();", element)
-            koment=(self._txt)
+            koment=(txt)
             self._driver.find_element(By.NAME, "Data").send_keys(koment)
             time.sleep(1) 
             elem=self._driver.find_element(By.ID, "followAddButton")
             time.sleep(1) 
             elem.click()
-
-            msg = 'サイボウズに未検査品と在庫状況をアップしました。'
-            print(msg)
+            return True
         except Exception as e:
-            msg = 'サイボウズへのアップ失敗です。'
-            print(msg)
             print(e)
+            return False
         finally:
             self._driver.quit()
         
 
 class CybozuForSoukoidou2(ICybozu):
 
-    def __init__(self, is_soukoidou_ok: bool, recorder: Recorder)-> None:
+    def __init__(self)-> None:
 
         super().__init__()
-        self._is_soukoidou_ok = is_soukoidou_ok
-        self._recorder = recorder
 
-    def put_cybozu(self)-> None:
+    def put_cybozu(self, txt)-> bool:
 
-        mytxt = '今回の倉庫移動製品です    by DM'
-        what_up = 'syukko_data.csv'
-        if not self._is_soukoidou_ok:
-            mytxt = '今回の倉庫移動製品はありません   by DM'
-            what_up = 'コメント'
-        
         file=(r'\\192.168.1.247\共有\技術課ﾌｫﾙﾀﾞ\200. effit_data\syukko_data.csv')
 
         try:
-            #element = self._driver.find_element_by_xpath("//*[text()=\"品質検査管理について\"]")
-            element = self._driver.find_element(By.XPATH, "//*[text()=\"soukoidou_test\"]")
+            element = self._driver.find_element(By.XPATH, "//*[text()=\"倉庫移動お知らせ\"]")
+            #element = self._driver.find_element(By.XPATH, "//*[text()=\"soukoidou_test\"]")
             self._driver.execute_script("arguments[0].click();", element)
 
-            if self._is_soukoidou_ok: # 倉庫移動したならファイルを添付する
-                file_choice = self._driver.find_element(By.NAME, "files[]")
-                file_choice.send_keys(file)
+            file_choice = self._driver.find_element(By.NAME, "files[]")
+            file_choice.send_keys(file)
 
-            koment=(mytxt)
+            koment=(txt)
             self._driver.find_element(By.NAME, "Data").send_keys(koment)
             time.sleep(1) 
             elem=self._driver.find_element(By.ID, "followAddButton")
             time.sleep(1) 
             elem.click()
-            msg = f'サイボウズに{what_up}をアップしました。'
-            self._recorder.out_log(msg, '\n')
-            self._recorder.out_file(msg, '\n')
+            return True
         except Exception as e:
-            msg = f'サイボウズへの{what_up}アップ失敗です。'
-            self._recorder.out_log(msg)
-            self._recorder.out_log(f'{e}', '\n')
-            self._recorder.out_file(msg)
-            self._recorder.out_file(f'{e}', '\n')
+            print(e)
+            return False
         finally:
             self._driver.quit()

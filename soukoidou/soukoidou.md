@@ -34,11 +34,8 @@ GitHub Publicリポジトリで公開</br>
 - (移動カラム=NULLまたは、特) and 判定カラム=合格　で、実行される。
 - 移動カラム「中」では実行されない
 - 実行後は自動で移動カラム=済になる
-#### 和泉課長打合せ議事録
-- 2026/2/20 TSSの品質管理で「effitへ出力」を行うと、移動カラムは「中」になる。 無事にcsvファイルがeffit倉庫移動フォルダに移動した時点で、 デジタル部長に「中」-> 「済」に変更するようにしてもらう。
-- 2026/2/20 特採の場合、デジタル部長にはやってもらわず、手動で倉庫移動する。 移動カラムも「特」に変更せず、空欄のままにしておく。 その後、検査担当が「合格」に変更すれば、デジタル部長が倉庫移動かける。
-固定リンク  削除する
-#### soukoidou
+---
+#### soukoidouの動き
 ##### 営業日計算 
 1. 前稼働日、本日、翌稼働日、6ヵ月前の年月日を計算
 ##### 未検査製品の抽出
@@ -53,12 +50,12 @@ GitHub Publicリポジトリで公開</br>
 1. 輸出塗料連絡表で、発送日が前稼働日かつ、「成績書記載名称」が "-" でない製品を抽出する。
 1. `.../testreport/輸出/` に既に存在するか? それは「初物」か?をチェックする。
 1. `.../testreport/zip_files/<納入日フォルダ>/送信済/*.zip` に成績書があるかをチェックする。
-1. 上記は既に提出済または、`.../testreport/輸出/`に「初物」でない成績書がある場合は新たに検査成績書は作成しないということ。
+1. 上記は**既に提出済または、`.../testreport/輸出/`に「初物」でない成績書がある場合は新たに検査成績書は作成しない**ということ。
 1. 品質検査、メタル品質検査から6ヵ月前から本日までのLotをfetchして、作成しなければならないLotがどちらのデータベースに存在するのかを調べる。
 1. 品質検査に登録されている製品は`\\192.168.1.247\共有\TSS_System\TssSystem\ToyoKogyo\Bat\ToyoKogyoHsRepBat\TyoKogyoHsRepBat.exe`を使って成績書を作成する。
 1. メタル品質検査に登録されている製品は`\\192.168.1.247\共有\TSS_System\TssSystem\ToyoKogyo\Bat\ToyoKogyoMhsRepBat\TyoKogyoMhsRepBat.exe` を使って成績書を作成する。
 ---
-#### soukoidou2
+#### soukoidou2の動き
 ##### マイナス在庫が無く倉庫移動可能か調査
 1. 今日中に倉庫移動が必要な製品(検査する出荷製品)</br>
 self.inspect_shipping_products: Dict= {'S6-SV3800-U':{'出荷':20, '現在庫':100, '出荷後':80}, ....} を求める
@@ -67,17 +64,22 @@ self.inspect_shipping_products: Dict= {'S6-SV3800-U':{'出荷':20, '現在庫':1
 
 ##### 小糸成績書発行
 1. 小糸AB試験チェック
-    1. 品質管理のAB試験が間違っていないかチェック
-        1. 間違っていたら倉庫移動しない。-> 中止
-        1. 間違っていたら成績書発行しない。-> 中止　
+    1. 品質管理のAB試験が間違っていないかチェック -> 品質管理データからABチェック製品の前回lotを求める。その前回lotが「小糸B試験管理ｼｰﾄ.xlsx」でB試験から何回目なのかを求めて、今回の試験のABを判定する。
+        1. AB判定が間違っていたら倉庫移動しない。-> 中止
+        1. AB判定が間違っていたら小糸成績書発行しない。-> 中止　
+    1. AB判定問題なければ、「小糸B試験管理ｼｰﾄ.xlsx」の所定の場所に、今回試験のlotとデジタル部長のサイン(db)を入力する。
+    1. lotの入力の際、詰替えlotの場合はTの後の２桁数字は省く。
 1. 小糸成績書発行の是非調査 (国内メタル成績書は不要。syukkaロボットが行う) 
-    1. 櫻田フォルダに小糸成績書があるか？ 
-    1. ABチェックフォルダに小糸成績書があるか？
-1. 小糸成績書発行->上の条件をクリアしていれば、直接櫻田フォルダに入れても良い
+    1. 櫻田フォルダに小糸成績書があるか？-> すでに小糸成績書があれば発行しない。 
+1. 小糸成績書発行->上の条件をクリアしていれば、直接櫻田フォルダに入れる。
 ##### effitA倉庫移動
-1. 倉庫移動.csv作成
+1. マイナス在庫が無く、AB試験判定も問題なければ、検査合格で「済」でない製品の「倉庫移動.csv」を作成する。
+    1. 「空欄」「特」の倉庫移動を行う。
+    1. 「中」のものは倉庫移動かけられない。-> 手動で倉庫移動かけて手動で「済」にすること
+    1. `//191.168.1.245/effit_A/倉庫移動/`フォルダ中に「倉庫移動.csv」が存在すると倉庫移動は行わない。「倉庫移動.csv」は手動で処理する事。
 1. 倉庫移動実施
 1. サイボウズに結果をアップする
+---
 
 ### クラス図
 ```mermaid
@@ -85,13 +87,13 @@ self.inspect_shipping_products: Dict= {'S6-SV3800-U':{'出荷':20, '現在庫':1
 title: Soukoidou
 ---
 classDiagram
-direction TB
+direction LR
 
 class Main{
-    + main()void
+    + main()None
 }
 class Soukoidou{
-    + soukoidou2()void
+    + soukoidou2()None
 }
 class Eigyoubi{
     - _holidays: List
@@ -123,6 +125,25 @@ class FetchYotei{
 class FetchInspectProducts{
     + fetch_data(cnxn)pd.DataFrame
 }
+class CreateExportCoa{
+    - _recorder: Recorder
+    - _HS: ITssCoa
+    - _MHS: ITssCoa
+    - _coa_path: str
+    - _YSSH_path: str
+    - _output_path
+    - _YTR: pd.DataFrame
+    - _centCoas: List~str~
+    + create_coa()None
+    + to_log_YTR()None
+    - _logout(List~List~str~~)None
+}
+class TossToCybozu{
+    - inventorySurvey: InventorySurvey
+    - uninspectedProductsSurvey: UninspectedProductsSurvey
+    - recorder: Recorder
+    + create_txt_for_cybozuSoukoidou()None
+}
 class ICybozu{
     <<interface>>
     - _login_name
@@ -131,9 +152,6 @@ class ICybozu{
     + put_cybozu()None*
 }
 class CybozuForSoukoidou{
-    - _inventorySurvey: InventorySurvey
-    - _uninspectedProductsSurvey: UninspectedProductsSurvey
-    - _recorder: Recorder
     + put_cybozu()None
 }
 class CybozuForSoukoidou2{
@@ -152,19 +170,6 @@ class UninspectedProductsSurvey{
     - _df_mhk
     + txt_for_cybozu()str
 }
-class CreateExportCoa{
-    - _recorder: Recorder
-    - _HS: ITssCoa
-    - _MHS: ITssCoa
-    - _coa_path: str
-    - _YSSH_path: str
-    - _output_path
-    - _YTR: pd.DataFrame
-    - _centCoas: List~str~
-    + create_coa()None
-    + to_log_YTR()None
-    - _logout(List~List~str~~)None
-}
 Main --> Soukoidou
 Soukoidou --> Eigyoubi
 Soukoidou --> InstanceFactory
@@ -172,12 +177,13 @@ InstanceFactory --> IFetchData
 IFetchData <|.. FetchHolidays
 IFetchData <|.. FetchYotei
 IFetchData <|.. FetchInspectProducts
-Soukoidou --> ICybozu
+Soukoidou --> CreateExportCoa
+Soukoidou --> TossToCybozu
+TossToCybozu o-- InventorySurvey
+TossToCybozu o-- UninspectedProductsSurvey
+TossToCybozu o-- ICybozu
 ICybozu <|.. CybozuForSoukoidou
 ICybozu <|.. CybozuForSoukoidou2
-CybozuForSoukoidou o-- InventorySurvey
-CybozuForSoukoidou o-- UninspectedProductsSurvey
-Soukoidou --> CreateExportCoa
 ```
 
 ```mermaid
@@ -188,10 +194,10 @@ classDiagram
 direction TB
 
 class Main2{
-    + main()void
+    + main()None
 }
 class Soukoidou2{
-    + soukoidou2()void
+    + soukoidou2()None
 }
 class Eigyoubi{
     - _holidays: List

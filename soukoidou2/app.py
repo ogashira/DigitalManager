@@ -4,6 +4,8 @@ from instance_factory import InstanceFactory
 from cybozu import ICybozu
 import sys
 
+from txt_cybozu_for_soukoidou2 import TxtCybozuForSoukoidou2
+
 # 実行時にはインポートせず、型チェックの為だけに書く　
 if TYPE_CHECKING:
     from eigyoubi import Eigyoubi
@@ -48,11 +50,13 @@ def soukoidou2()->None:
     引当後の在庫がマイナスにならないかをチェック。また、AB試験もチェックして
     両方okならis_soukoidou_okならTrueとする
     '''
-    soukoidouCheck:SoukoidouCheck = InstanceFactory.get_soukoidou_check(yokujitu)
+    soukoidouCheck:SoukoidouCheck = \
+                  InstanceFactory.get_soukoidou_check(yokujitu, honjitu)
     # check_is_soukoidou_okの中でcreate_koito_coaも呼ばれる
     is_soukoidou_ok:bool = soukoidouCheck.check_is_soukoidou_ok()
 
     # 倉庫移動を行う
+    failed_soukoidous = []
     if is_soukoidou_ok:
         effitA:EffitA = InstanceFactory.get_effitA(honjitu)
         effitA.soukoidou()
@@ -60,9 +64,11 @@ def soukoidou2()->None:
         failed_soukoidous: List[List[str]] = effitA.check_before_after()
 
     # サイボウズにアップする
-    cybozuForSoukoidou2: ICybozu = \
-            InstanceFactory.get_cybozuForSoukoidou2(is_soukoidou_ok)
-    cybozuForSoukoidou2.put_cybozu()
+    if is_soukoidou_ok:
+        txtCybozuForSoukoidou2: TxtCybozuForSoukoidou2 = \
+            InstanceFactory.get_txtCybozuForSoukoidou2(is_soukoidou_ok,
+                                                       failed_soukoidous)
+        txtCybozuForSoukoidou2.create_txt_for_cybozuSoukoidou2()
 
     # sqlServer.close()を呼び出して、server, cnxnを閉じる
     InstanceFactory.delete_cnxn()

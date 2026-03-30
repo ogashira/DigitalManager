@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, TYPE_CHECKING, Any
+from typing import Dict, TYPE_CHECKING, Any, List
 import platform
 import sys
 from fetch_data import IFetchData
@@ -8,15 +8,19 @@ from fetch_data import IFetchData
 if TYPE_CHECKING:
     from eigyoubi import Eigyoubi
     from inventory_survey import InventorySurvey
-    from uninspected_products_survey import UninspectedProductsSurvey
-    from create_export_coa import CreateExportCoa
-    from soukoidou_check import SoukoidouCheck
-    from create_koito_coa import CreateKoitoCoa
-    from ab_test_check import ABTestCheck
+    from soukoidou.uninspected_products_survey import UninspectedProductsSurvey
+    from soukoidou.create_export_coa import CreateExportCoa
+    from soukoidou2.soukoidou_check import SoukoidouCheck
+    from soukoidou2.create_koito_coa import CreateKoitoCoa
+    from soukoidou2.ab_test_check import ABTestCheck
     from plus_kensa_goukaku import PlusKensaGoukaku
-    from toss_to_cybozu import TossToCybozu
-    from soukoidou_csv import SoukoidouCsv
-    from effitA import EffitA
+    from soukoidou.txt_cybozu_for_soukoidou import TxtCybozuForSoukoidou
+    from soukoidou2.txt_cybozu_for_soukoidou2 import TxtCybozuForSoukoidou2
+    from soukoidou2.soukoidou_csv import SoukoidouCsv
+    from soukoidou2.effitA import EffitA
+    from cybozu import ICybozu
+    from recorder import Recorder
+
 
 class InstanceFactory:
     '''
@@ -53,7 +57,7 @@ class InstanceFactory:
     def get_sql_server_tss(cls) -> None:
         if cls._sqlServerTss is None:
             cls._setup_sql_path()
-            from sql_server_tss_addmin import SqlServer as SqlServerTss
+            from sql_server_tss_addmin import SqlServer as SqlServerTss 
             cls._sqlServerTss = SqlServerTss()
             cls._cnxn_tss = cls._sqlServerTss.get_cnxn()
 
@@ -217,6 +221,24 @@ class InstanceFactory:
             cls._instances[ins_name] = Recorder(mydir)
         return cls._instances[ins_name]
 
+    @classmethod
+    def get_cybozuForSoukoidou(cls)-> "ICybozu":
+        from cybozu import CybozuForSoukoidou
+        ins_name: str = 'cybozuForSoukoidou'
+        if ins_name not in cls._instances:
+            cybozuForSoukoidou: ICybozu = CybozuForSoukoidou()
+            cls._instances[ins_name] = cybozuForSoukoidou
+        return cls._instances[ins_name]
+
+    @classmethod
+    def get_cybozuForSoukoidou2(cls)-> "ICybozu":
+        from cybozu import CybozuForSoukoidou2
+        ins_name: str = 'cybozuForSoukoidou2'
+        if ins_name not in cls._instances:
+            cybozuForSoukoidou2: ICybozu = CybozuForSoukoidou2()
+            cls._instances[ins_name] = cybozuForSoukoidou2
+        return cls._instances[ins_name]
+
 
     @classmethod
     def get_plus_kensa_goukaku(cls) -> "PlusKensaGoukaku":
@@ -255,7 +277,7 @@ class InstanceFactory:
 
     @classmethod
     def get_uninspected_products_survey(cls) -> "UninspectedProductsSurvey":
-        from uninspected_products_survey import UninspectedProductsSurvey
+        from soukoidou.uninspected_products_survey import UninspectedProductsSurvey
         ins_name = 'uninspected_products_survey'
         fetchHk = cls.get_fetchHk()
         fetchMhk = cls.get_fetchMhk()
@@ -265,7 +287,8 @@ class InstanceFactory:
         return cls._instances[ins_name]
 
     @classmethod
-    def get_create_export_coa(cls, zenjitu, six_months_ago) -> "CreateExportCoa":
+    def get_create_export_coa(cls, zenjitu, honjitu, 
+                                      six_months_ago) -> "CreateExportCoa":
         from create_export_coa import CreateExportCoa
         from I_tss_coa import ITssCoa
         from tss_coa_from_hs import TssCoaFromHs 
@@ -276,6 +299,7 @@ class InstanceFactory:
         @dataclass
         class ArgsForCreateExportCoa: 
             zenjitu: str
+            honjitu: str
             fetch_HS_lot: IFetchData = cls.get_fetch_HS_lot(six_months_ago) 
             fetch_MHS_lot: IFetchData = cls.get_fetch_MHS_lot(six_months_ago)
             tss_coa_from_hs: ITssCoa = TssCoaFromHs()
@@ -284,20 +308,20 @@ class InstanceFactory:
                                                     ListContentsOfZipFiles()
             recorder: Recorder = cls._instances['recorder']
         
-        args = ArgsForCreateExportCoa(zenjitu)
+        args = ArgsForCreateExportCoa(zenjitu, honjitu)
         return CreateExportCoa(args) 
 
     @classmethod
-    def get_soukoidou_check(cls, yokujitu) -> "SoukoidouCheck":
+    def get_soukoidou_check(cls, yokujitu, honjitu) -> "SoukoidouCheck":
         from soukoidou_check import SoukoidouCheck
         inventorySurvey = cls.get_inventory_survey(yokujitu)
-        abTestCheck = cls.get_ab_test_check()
+        abTestCheck = cls.get_ab_test_check(honjitu)
         recorder = cls._instances['recorder']
         
         return SoukoidouCheck(inventorySurvey, abTestCheck, recorder)
 
     @classmethod
-    def get_create_koito_coa(cls) -> "CreateKoitoCoa":
+    def get_create_koito_coa(cls, honjitu) -> "CreateKoitoCoa":
         from create_koito_coa import CreateKoitoCoa
         from I_tss_coa import ITssCoa
         from tss_coa_from_hs import TssCoaFromHs 
@@ -305,14 +329,16 @@ class InstanceFactory:
         ins_name = 'create_koito_coa'
         if ins_name not in cls._instances: 
             cls._instances[ins_name] = \
-                    CreateKoitoCoa(tssCoaFromHs, cls._instances['recorder'])
+                    CreateKoitoCoa(tssCoaFromHs, 
+                                   cls._instances['recorder'],
+                                   honjitu)
         return cls._instances[ins_name]
 
     @classmethod
-    def get_ab_test_check(cls) -> "ABTestCheck":
+    def get_ab_test_check(cls, honjitu) -> "ABTestCheck":
         from ab_test_check import ABTestCheck
         fetchKoitoKensa: IFetchData = cls.get_fetch_koito_kensa()
-        createKoitoCoa = cls.get_create_koito_coa()
+        createKoitoCoa = cls.get_create_koito_coa(honjitu)
         ins_name = 'ab_test_check'
         if ins_name not in cls._instances:
             cls._instances[ins_name] = ABTestCheck(fetchKoitoKensa,
@@ -322,17 +348,39 @@ class InstanceFactory:
         return cls._instances[ins_name]
 
     @classmethod
-    def get_tossToCybozu(cls, yokujitu) -> "TossToCybozu":
-        from toss_to_cybozu import TossToCybozu
-        ins_name = 'TossToCybozu'
+    def get_txtCybozuForSoukoidou(cls, yokujitu) -> "TxtCybozuForSoukoidou":
+        from soukoidou.txt_cybozu_for_soukoidou import TxtCybozuForSoukoidou
+        ins_name = 'txtCybozuForSoukoidou'
         inventorySurvey: InventorySurvey = cls.get_inventory_survey(yokujitu)
         uninspectedProductsSurvey: UninspectedProductsSurvey = \
                                         cls.get_uninspected_products_survey()
+        cybozuForSoukoidou:ICybozu = cls.get_cybozuForSoukoidou()
         if ins_name not in cls._instances:
-            tossToCybozu: TossToCybozu = TossToCybozu(inventorySurvey, 
-                                                   uninspectedProductsSurvey,
-                                                  cls._instances['recorder'])
-            cls._instances[ins_name] = tossToCybozu
+            txtCybozuForSoukoidou: TxtCybozuForSoukoidou = \
+                    TxtCybozuForSoukoidou(inventorySurvey, 
+                                          uninspectedProductsSurvey,
+                                          cybozuForSoukoidou,
+                                          cls._instances['recorder'])
+            cls._instances[ins_name] = txtCybozuForSoukoidou
+
+        return cls._instances[ins_name]
+
+
+    @classmethod
+    def get_txtCybozuForSoukoidou2(cls, 
+                                   is_soukoidou_ok: bool,
+                                   failed_soukoidous: List[List[str]],
+                                   ) -> "TxtCybozuForSoukoidou2":
+        from soukoidou2.txt_cybozu_for_soukoidou2 import TxtCybozuForSoukoidou2
+        ins_name = 'txtCybozuForSoukoidou2'
+        cybozuForSoukoidou2:ICybozu = cls.get_cybozuForSoukoidou2()
+        if ins_name not in cls._instances:
+            txtCybozuForSoukoidou2: TxtCybozuForSoukoidou = \
+                    TxtCybozuForSoukoidou2(is_soukoidou_ok, 
+                                          failed_soukoidous,
+                                          cybozuForSoukoidou2,
+                                          cls._instances['recorder'])
+            cls._instances[ins_name] = txtCybozuForSoukoidou2
 
         return cls._instances[ins_name]
 

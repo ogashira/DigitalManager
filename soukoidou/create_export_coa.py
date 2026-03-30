@@ -5,8 +5,8 @@ import pprint
 from typing import List, cast
 import sys
 import os
-from recorder import Recorder
-import coa_check 
+from mymodules.recorder import Recorder
+from  mymodules import coa_check 
 
 '''
 サーバーにあるsql_server.pyをモジュールとして使う
@@ -38,14 +38,15 @@ class CreateExportCoa:
     作成しない
     '''
 
-    def __init__(self, args)-> None:
+    def __init__(self, obj_args)-> None:
 
-        zenjitu = args.zenjitu
+        zenjitu = obj_args.zenjitu
+        self._honjitu = obj_args.honjitu
         # recorderのインスタンスをもらっておく
-        self._recorder:Recorder = args.recorder
+        self._recorder:Recorder = obj_args.recorder
 
-        self._HS: ITssCoa = args.tss_coa_from_hs
-        self._MHS: ITssCoa = args.tss_coa_from_mhs
+        self._HS: ITssCoa = obj_args.tss_coa_from_hs
+        self._MHS: ITssCoa = obj_args.tss_coa_from_mhs
 
 
         path = r'\\192.168.1.247\Guest\輸出塗料連絡表.xlsx'
@@ -87,7 +88,7 @@ class CreateExportCoa:
             # zip_files/送信済のファイル名リストを取得する
             if os.path.isdir(path):
                 self._sentCoas += \
-                       args.listContentsOfZipFiles.list_contents_of_zip_files(path)
+                       obj_args.listContentsOfZipFiles.list_contents_of_zip_files(path)
 
 
         # is_Exists_coa 列（既にcoaがあるか？）を作る
@@ -105,14 +106,27 @@ class CreateExportCoa:
 
         # _HSと_MHSからlotのリストを得る。輸出塗料連絡表のLotがどちらのデータベースに
         # あるかを判定して、成績書を作成する
-        df_HS = args.fetch_HS_lot.fetch_data()
+        df_HS = obj_args.fetch_HS_lot.fetch_data()
         self._HS_lots: List[str] = list(df_HS['LOT'])
 
-        df_MHS = args.fetch_MHS_lot.fetch_data()
+        df_MHS = obj_args.fetch_MHS_lot.fetch_data()
         self._MHS_lots: List[str] = list(df_MHS['LOT'])
 
 
     def create_coa(self)-> None:
+
+        def _add_to_line(line: List, returncode: int)-> List:
+            if returncode ==0:
+                line.append("何らかの失敗")
+                return line
+            if returncode ==1:
+                return []
+            if returncode == 2:
+                line.append("初物NG")
+                return line
+            if returncode > 3:
+                line.append(f"作成できない(returncode={returncode})")
+                return line
 
         if self._YTR.empty:
             txt = '新たに作成する輸出の成績書はありません'
@@ -141,7 +155,7 @@ class CreateExportCoa:
             self._recorder.out_file(txt)
             return 
 
-
+        # 成績書作成
         nonCreate_coa: List = []
         for i in range(len(YTR_false)):  
             mksk:str = mksk_dic[YTR_false.loc[i, '行き先']]
@@ -150,33 +164,35 @@ class CreateExportCoa:
             name:str = YTR_false.loc[i, '品名']
             order_no = YTR_false.loc[i, 'オーダーナンバー']
 
-            txt = (f'{ikisaki},{lot},{name},{order_no}の成績書作成中')
-            self._recorder.out_log(txt, '\n')
+            txt = (f'\n{ikisaki},{lot},{name},{order_no}の成績書作成中')
+            self._recorder.out_log(txt)
                   
+            line_base: List[str] = [mksk, lot, name, order_no ]
             # 品室管理にある場合
             if lot in self._HS_lots:
-                is_success_or_failed_HS: str = self._HS.create_coa(lot, 
+                returncode: int = self._HS.create_coa(lot, 
                                                          self._output_path, mksk)
-                if is_success_or_failed_HS != 'success':
-                    line: List[str] = [mksk, lot, name, order_no ]
-                    line.append(is_success_or_failed_HS)
+                line: List[str] = line_base.copy()
+                line = _add_to_line(line, returncode)
+                if line:
                     nonCreate_coa.append(line)
+
             elif lot in self._MHS_lots: # メタル品質管理にある場合
-                is_success_or_failed_MHS: str = self._MHS.create_coa(lot, 
+                returncode = self._MHS.create_coa(lot, 
                                                       self._output_path)
-                if is_success_or_failed_MHS != 'success':
-                    line: List[str] = [mksk, lot, name, order_no ]
-                    line.append(is_success_or_failed_MHS)
+                line: List[str] = line_base.copy()
+                line = _add_to_line(line, returncode)
+                if line:
                     nonCreate_coa.append(line)
+
             else:
-                line: List[str] = [mksk, lot, name, order_no, 'データベースにLotなし' ]
+                line: List[str] = [mksk, lot, name, order_no, '6ヶ月以内のデータベースにLotなし' ]
                 nonCreate_coa.append(line)
 
             # 初物チェックして初物だったらnonCreate_coaにappendする
-            if coa_check.is_hatumono(ikisaki, lot, order_no, self._coa_path):
-                nonCreate_coa.append([mksk, lot, name, order_no, '初物NG'])
+            if coa_check.is_hatumono(ikisaki, lot, order_no, self._honjitu, 
+                                                           self._coa_path):
                 print('↑ 初物です')
-            #self.warning_hatumono(coa_folder)
 
         self._logout(nonCreate_coa)
 

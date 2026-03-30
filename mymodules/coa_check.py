@@ -29,11 +29,11 @@ import zenhan
 
 
 def is_hatumono(ikisaki: str, lot: str, 
-                            order_no: str, path: str)-> bool:
+                order_no: str, honjitu:str, path: str)-> bool:
     '''
     作ったcoaをpathの中から探して、初物かどうかチェックする
     '''
-
+    honjitu_num = honjitu[:4] + honjitu[5:7] + honjitu[8:]
     is_hatumono:bool = False
 
     ikisaki = zenhan.z2h(str(ikisaki)).replace('/', '-')
@@ -47,17 +47,19 @@ def is_hatumono(ikisaki: str, lot: str,
         if (ikisaki in filename 
             and order_no in filename
             and lot in filename
+            and honjitu_num in filename
             and check_is_hatumono(file_path)):
             is_hatumono = True
 
     return is_hatumono
 
 
-def is_hatumono_koito(lot: str, path: str)-> bool:
+def is_hatumono_koito(lot: str, honjitu:str, path: str)-> bool:
     '''
     作ったcoaをpathの中から探して、初物かどうかチェックする
     '''
 
+    honjitu_num = honjitu[:4] + honjitu[5:7] + honjitu[8:]
     is_hatumono:bool = False
 
     lot = zenhan.z2h(str(lot))
@@ -68,6 +70,7 @@ def is_hatumono_koito(lot: str, path: str)-> bool:
         filenames:List = zenhan.z2h(filename).split('_')
         if len(filenames) == 4:
             if ( filenames[1] ==lot
+                and filenames[2] == honjitu_num
                 and (filenames[3] == '小糸.pdf' or filenames[3] == '小糸.PDF')
                 and check_is_hatumono(file_path)):
                 is_hatumono = True

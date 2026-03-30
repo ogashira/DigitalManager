@@ -1,16 +1,19 @@
-from inventory_survey import InventorySurvey
+from mymodules.inventory_survey import InventorySurvey
 from uninspected_products_survey import UninspectedProductsSurvey
-from recorder import Recorder
+from mymodules.recorder import Recorder
+from mymodules.cybozu import ICybozu
 
 
-class TossToCybozu:
+class TxtCybozuForSoukoidou:
 
     def __init__(self, inventorySurvey: InventorySurvey, 
                  uninspectedProductsSurvey: UninspectedProductsSurvey, 
+                 cybozuForSoukoidou: ICybozu,
                  recorder: Recorder)-> None:
 
         self._inventorySurvey = inventorySurvey
         self._uninspectedProductsSurvey = uninspectedProductsSurvey
+        self._cybozuForSoukoidou = cybozuForSoukoidou
         self._recorder = recorder
 
 
@@ -37,4 +40,15 @@ class TossToCybozu:
         self._recorder.out_log(mytxt)
         self._recorder.out_file(mytxt)
 
+        # サイボウズにアップする
+        self._put_cybozu(mytxt)
 
+    def _put_cybozu(self, mytxt:str)-> None:
+        is_cybozu_up: bool = self._cybozuForSoukoidou.put_cybozu(mytxt)
+        if is_cybozu_up:
+            txt = 'サイボウズに未検査品と在庫状況をアップしました。'
+        else:
+            txt = 'サイボウズへのアップ失敗です。'
+
+        self._recorder.out_log(txt, '\n')
+        self._recorder.out_file(txt, '\n')

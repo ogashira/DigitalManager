@@ -1,5 +1,5 @@
 import pandas as pd
-from fetch_data import IFetchData
+from mymodules.fetch_data import IFetchData
 
 class UninspectedProductsSurvey:
     def __init__(self, hk:IFetchData, mhk:IFetchData)-> None:

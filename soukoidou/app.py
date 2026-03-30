@@ -1,13 +1,13 @@
 from typing import List, TYPE_CHECKING
 import pprint
-from toss_to_cybozu import TossToCybozu
-from instance_factory import InstanceFactory
+from txt_cybozu_for_soukoidou import TxtCybozuForSoukoidou
+from mymodules.instance_factory import InstanceFactory
 
 # 実行時にはインポートせず、型チェックの為だけに書く　
 if TYPE_CHECKING:
-    from eigyoubi import Eigyoubi
-    from recorder import Recorder
-    from inventory_survey import InventorySurvey
+    from mymodules.eigyoubi import Eigyoubi
+    from mymodules.recorder import Recorder
+    from mymodules.inventory_survey import InventorySurvey
     from uninspected_products_survey import UninspectedProductsSurvey
     from create_export_coa import CreateExportCoa
 
@@ -44,10 +44,10 @@ def soukoidou()->None:
     testreport/輸出フォルダに 成績書があるか調べる。無ければ作る
     '''
     #TODO後で消す
-    zenjitu = '2026/03/31'
+    zenjitu = '2026/04/01'
 
     create_export_coa: CreateExportCoa = \
-                InstanceFactory.get_create_export_coa(zenjitu, 
+                InstanceFactory.get_create_export_coa(zenjitu, honjitu, 
                                                       six_months_ago)
     # 輸出成績書を作成する
     create_export_coa.create_coa()
@@ -60,8 +60,9 @@ def soukoidou()->None:
     未検査品情報はUninspectedProductSurveyクラス。
     翌日出荷品の情報はInventorySurveyクラス
     '''
-    tossToCybozu: TossToCybozu = InstanceFactory.get_tossToCybozu(yokujitu)
-    tossToCybozu.create_txt_for_cybozuSoukoidou()
+    txtCybozuForSoukoidou: TxtCybozuForSoukoidou = \
+                    InstanceFactory.get_txtCybozuForSoukoidou(yokujitu)
+    txtCybozuForSoukoidou.create_txt_for_cybozuSoukoidou()
 
     # sqlServer.close()を呼び出して、server, cnxnを閉じる
     InstanceFactory.delete_cnxn()

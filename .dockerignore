@@ -1,6 +1,0 @@
-.git
-*.swp
-__pycache__
-.dockerignore
-Dockerfile
-docker-compose.yml

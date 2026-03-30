@@ -1,0 +1,10 @@
+{
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "/tmp/sql_mod"
+      ]
+    }
+  ]
+}

@@ -68,6 +68,23 @@ class Recorder(object):
             print(f'\n{title}\n{txt}', file = f)
 
 
+    def out_txt_from_list_list(self, lists:List[List])-> str:
+        '''
+        二次元リストをファイルに出力する。
+        innerリストはカンマ区切りで、１行ずつ表示する
+        '''
+        row_txts:List = [] 
+        for list in lists:
+            # (リスト)の中身を全て文字列に変換する
+            list_str = [str(item) for item in list]
+            row_txt = ','.join(list_str)
+            row_txts.append(row_txt)
+                
+        txt = '\n'.join(row_txts)
+
+        return txt
+
+
     def out_file_from_df(self, df:pd.DataFrame, title:str)-> None:
         '''
         DataFrameからファイルに出力する
