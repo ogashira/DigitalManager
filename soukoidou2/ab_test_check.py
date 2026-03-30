@@ -54,7 +54,7 @@ class ABTestCheck:
         # 前回lotのcountを入力
             self._passed_koitos_thistime['count_lastTime'] = \
        self._passed_koitos_thistime.apply(self.find_koito_lastLot_count, axis=1)
-        
+
 
         '''
         1. 今回合格した小糸むけ製品 _passed_koitos_thistime
@@ -84,19 +84,23 @@ class ABTestCheck:
         txt: str = '\n AB試験チェックオッケーです'
         As = [1, 2, 3, 5]
         Bs = [4]
-        for _, row in self._passed_koitos_thistime.iterrows():
+        if not self._passed_koitos_thistime.empty:
+            for _, row in self._passed_koitos_thistime.iterrows():
 
-            if row['count_lastTime'] == 0:
-                return False
-            if row['SHIKEN'] == '01' and row['count_lastTime'] not in As:
-                is_abTest_ok =  False
-            if row['SHIKEN'] == '02' and row['count_lastTime'] not in Bs:
-                is_abTest_ok =  False
+                if row['count_lastTime'] == 0:
+                    txt = '前回AB試験lotが探せていません。処理を中止します'
+                    self._recorder.out_log(txt, '\n')
+                    self._recorder.out_file(txt, '\n')
+                    sys.exit(1)
+                if row['SHIKEN'] == '01' and row['count_lastTime'] not in As:
+                    is_abTest_ok =  False
+                if row['SHIKEN'] == '02' and row['count_lastTime'] not in Bs:
+                    is_abTest_ok =  False
 
-        self._recorder.out_log_df(self._passed_koitos_thistime,
-                                 '<小糸AB試験チェック結果>')
-        self._recorder.out_file_from_df(self._passed_koitos_thistime, 
-                                  '<小糸AB試験チェック結果>')
+            self._recorder.out_log_df(self._passed_koitos_thistime,
+                                     '<小糸AB試験チェック結果>')
+            self._recorder.out_file_from_df(self._passed_koitos_thistime, 
+                                      '<小糸AB試験チェック結果>')
 
         if not is_abTest_ok:
             txt = '\n xxxxxx AB試験チェックNGです xxxxxx\n' \
@@ -119,7 +123,7 @@ class ABTestCheck:
         lot = row['LOT']
         hinban =  row['Hinban']
         hinmei = self._hinbans[hinban] # K706改B etc
-        lastLot = row['lastLot'][:10] # 詰め替え識別Noは除く
+        lastLot = row['lastLot'][:9] # 詰め替え識別Noは除く
         # matching_indices = [0, 3, 10] など、lastLotと一致したindexのリストが返る 
         matching_indices = self._ab_check_df.index[self._ab_check_df[hinmei]
                                     .str.contains(lastLot, na=False)].tolist()

@@ -14,6 +14,5 @@ __pycache__
 ./old_soukoidou2/
 old_soukoidou2/
 pngs/
-.json
+*.json
 cybozu_ini/
-

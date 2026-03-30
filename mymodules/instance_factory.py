@@ -249,7 +249,8 @@ class InstanceFactory:
         if ins_name not in cls._instances:
             cls._instances[ins_name] = PlusKensaGoukaku(
                                                         fetchHKnotSumi,
-                                                        fetchMHKnotSumi
+                                                        fetchMHKnotSumi,
+                                             cls._instances['recorder']
                                                        )
         return cls._instances[ins_name]
 

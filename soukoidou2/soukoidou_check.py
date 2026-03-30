@@ -47,19 +47,28 @@ class SoukoidouCheck:
         # 引当後にマイナスになる在庫のdicをもらう
         minus_inventorys: Dict = self.minus_inventorys(
                                             shipping_products_plus_goukaku)
+
         if minus_inventorys:
-            txt = f'以下のとおりマイナス在庫があるため倉庫移動できません' \
+            txt = f'以下のとおりマイナス在庫があるため倉庫移動できません\n' \
             f'{self._inventorySurvey.make_txt_for_Dict_Dict(minus_inventorys)}'
             self._recorder.out_log(txt, '\n')
             self._recorder.out_file(txt)
             return False # False
 
-        if not shipping_products_plus_goukaku:
-            txt = '今回、倉庫移動する製品はありませんpass。'
+        if not self._inventorySurvey.ask_is_exists_nonSumis():
+            txt = '今回、倉庫移動する製品はありません。'
             self._recorder.out_log(txt, '\n')
             self._recorder.out_file(txt)
             return False
+        
+        is_abTest_ok:bool = self._abTestCheck.check_is_abTest_ok()
 
+        # ABチェックNGなら
+        if not is_abTest_ok: 
+            txt = 'AB試験が間違っています。処理中止します。' 
+            self._recorder.out_log(txt, '\n')
+            self._recorder.out_file(txt)
+            return False
 
         # passed_koitos_thistimeが空ならTrue
         if self._abTestCheck.is_empty_passed_koitos_thistime():
@@ -71,7 +80,7 @@ class SoukoidouCheck:
         # passed_koitos_thistimeが空ではなく、ABチェックokなら
         # 小糸b試験管理シートに記入してis_soukoidou_okをTrueに
         if not self._abTestCheck.is_empty_passed_koitos_thistime() and \
-                                self._abTestCheck.check_is_abTest_ok():
+                                                           is_abTest_ok:
             self._abTestCheck.input_to_BsikenKanriSheet()
             self._abTestCheck.create_koito_coa()
             txt = '倉庫移動可能です。' 
@@ -79,4 +88,4 @@ class SoukoidouCheck:
             self._recorder.out_file(txt)
             return True
 
-        return False
+        return True

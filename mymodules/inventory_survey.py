@@ -11,7 +11,7 @@ class InventorySurvey:
                  plusKensaGoukaku: PlusKensaGoukaku
                  )-> None:
         
-        self.plusKensaGoukaku: PlusKensaGoukaku = plusKensaGoukaku
+        self._plusKensaGoukaku: PlusKensaGoukaku = plusKensaGoukaku
         # 出荷予定データ
         fy: IFetchData = instances_for_inventorySurvey['fetchYotei']
         self.yotei: pd.DataFrame = fy.fetch_data()
@@ -47,12 +47,12 @@ class InventorySurvey:
         #         { 'S6-SV3800-U':{'出荷缶数':20, '現在庫':100, '引当後':80}, ....}
         self._inspect_shipping_products = self.calc_inspect_shipping_products()
 
-        print('inspect_shipping_products>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-        print(self._inspect_shipping_products)
-
+    def ask_is_exists_nonSumis(self)->bool:
+        return self._plusKensaGoukaku.ask_is_exists_nonSumis()
+    
 
     def plus_kensa_goukaku(self)-> Dict:
-        return self.plusKensaGoukaku.plus_goukaku(
+        return self._plusKensaGoukaku.plus_goukaku(
                                               self._inspect_shipping_products)
     
     def calc_inspect_shipping_products(self)-> Dict:
@@ -66,11 +66,6 @@ class InventorySurvey:
                                      indicator=True)
         df_filtered = merged_df[merged_df['_merge'] == 'left_only']. \
                                                     drop(columns=['_merge'])
-
-        '''
-        # TODO 後で消す 出荷処理済みを削除しないテストケース
-        df_filtered = self.yotei
-        '''
 
 
 

@@ -2,8 +2,8 @@ import platform
 import subprocess
 import pandas as pd
 
-from recorder import Recorder
-from soukoidou.fetch_data import IFetchData
+from mymodules.recorder import Recorder
+from mymodules.fetch_data import IFetchData
 
 
 class SoukoidouCsv:
@@ -50,13 +50,13 @@ class SoukoidouCsv:
             self._recorder.out_file(txt, '\n')
             return
 
-        if self._returncode = 3:
+        if self._returncode == 3:
             txt = '倉庫移動する製品はありません'
             self._recorder.out_log(txt, '\n')
             self._recorder.out_file(txt, '\n')
             return
 
-    def is_soukoidou_ok(self)-> bool
+    def is_soukoidou_ok(self)-> bool:
             return self._returncode == 1
 
     def get_before_soukoidouCsv(self)-> pd.DataFrame:

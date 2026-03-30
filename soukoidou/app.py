@@ -43,8 +43,6 @@ def soukoidou()->None:
     輸出塗料連絡表(CreateExportCoaクラス)で昨日出荷製品を調べて、
     testreport/輸出フォルダに 成績書があるか調べる。無ければ作る
     '''
-    #TODO後で消す
-    zenjitu = '2026/04/01'
 
     create_export_coa: CreateExportCoa = \
                 InstanceFactory.get_create_export_coa(zenjitu, honjitu, 
