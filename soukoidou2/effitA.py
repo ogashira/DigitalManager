@@ -4,6 +4,7 @@ from typing import List
 import time
 import os
 import sys
+import pyperclip
 
 from soukoidou_csv import SoukoidouCsv
 from mymodules.recorder import Recorder
@@ -35,22 +36,23 @@ class EffitA:
         pyautogui.typewrite('tajiri')
         pyautogui.typewrite(['enter', 'enter'])
 
-        time.sleep(5)
-
-        myclc = pyautogui.locateOnScreen(
-                r'C:\DigitalManager\pngs\effita_png\caps_error.png'
+        myclc = None
+        try:
+            myclc = pyautogui.locateOnScreen(
+                r'C:\DigitalManager\pngs\effita_png\caps_error.png', confidence=0.8
                 )
+            if myclc is not None:
+                pyautogui.typewrite(['capslock'])
+                pyautogui.typewrite(['enter'])
+                pyautogui.typewrite(['tab','tab'])
+                pyautogui.typewrite('honsya')
+                pyautogui.typewrite(['enter'])
+                pyautogui.typewrite('tajiri')
+                pyautogui.typewrite(['enter', 'enter'])  
+        except pyautogui.ImageNotFoundException:
+            print('caps_error.pngが見つかりませんでした。スキップします')
 
-        if myclc is not  None:
-            pyautogui.typewrite(['capslock'])
-            pyautogui.typewrite(['enter'])
-            pyautogui.typewrite(['tab','tab'])
-            pyautogui.typewrite('honsya')
-            pyautogui.typewrite(['enter'])
-            pyautogui.typewrite('tajiri')
-            pyautogui.typewrite(['enter', 'enter'])  
-
-        time.sleep(20)
+        time.sleep(10)
 
         # effitA取り込み処理
         pyautogui.typewrite(['down','down','down'])
@@ -64,52 +66,70 @@ class EffitA:
 
         pyautogui.typewrite('000410')
         pyautogui.typewrite(['enter'])
-        pyautogui.typewrite('@0001')
+        pyperclip.copy("@0001")
+        pyautogui.hotkey("ctrl", "v")
         pyautogui.typewrite(['enter','enter'])
         time.sleep(10)
 
 
-        myclc = pyautogui.locateOnScreen(
-                r'C:\DigitalManager\pngs\soukoidou_png\data_torikomi.png'
+        try:
+            myclc = pyautogui.locateOnScreen(
+                r'C:\DigitalManager\pngs\soukoidou_png\data_torikomi.png', confidence=0.8
                 )
-        if myclc is not None:
             clc_cent = pyautogui.center(myclc)
             pyautogui.click(clc_cent)
+        except pyautogui.ImageNotFoundException:
+            print('取り込み失敗しました。プログラムを停止します。')
+            sys.exit(1)
+
+
         pyautogui.typewrite(['enter'])
         pyautogui.typewrite(['enter'])
         time.sleep(20)
         pyautogui.typewrite(['enter'])
         time.sleep(5)
 
-        myclc = pyautogui.locateOnScreen(
-                r'C:\DigitalManager\pngs\soukoidou_png\data_check.png'
+        try:
+            myclc = pyautogui.locateOnScreen(
+                r'C:\DigitalManager\pngs\soukoidou_png\data_check.png', confidence=0.8
                 )
-        if myclc is not None:
             clc_cent = pyautogui.center(myclc)
             pyautogui.click(clc_cent)
+        except pyautogui.ImageNotFoundException:
+            print('データチェックに失敗しました。プログラムを停止します。')
+            sys.exit(1)
+
         time.sleep(30)
         pyautogui.typewrite(['enter'])
         time.sleep(5)
 
 
-        myclc = pyautogui.locateOnScreen(
-                r'C:\DigitalManager\pngs\soukoidou_png\data_kousin.png'
+        try:
+            myclc = pyautogui.locateOnScreen(
+                r'C:\DigitalManager\pngs\soukoidou_png\data_kousin.png', confidence=0.8
                 )
-        if myclc is not None:
             clc_cent = pyautogui.center(myclc)
             pyautogui.click(clc_cent)
+        except pyautogui.ImageNotFoundException:
+            print('データ更新に失敗しました。プログラムを停止します。')
+            sys.exit(1)
+
         pyautogui.typewrite(['enter'])
         time.sleep(30)
         pyautogui.typewrite(['enter'])
         time.sleep(5)
 
 
-        myclc = pyautogui.locateOnScreen(
+        try:
+            myclc = pyautogui.locateOnScreen(
                 r'C:\DigitalManager\pngs\soukoidou_png\data_sakujo.png'
                 )
-        if myclc is not None:
             clc_cent = pyautogui.center(myclc)
             pyautogui.click(clc_cent)
+        except pyautogui.ImageNotFoundException:
+            print('データ更新に失敗しました。プログラムを停止します。')
+            sys.exit(1)
+
         time.sleep(2)
         pyautogui.typewrite(['enter'])
         time.sleep(2)
@@ -117,21 +137,29 @@ class EffitA:
         time.sleep(5)
 
 
-        myclc = pyautogui.locateOnScreen(
-                r'C:\DigitalManager\pngs\soukoidou_png\end.png'
+        try:
+            myclc = pyautogui.locateOnScreen(
+                r'C:\DigitalManager\pngs\soukoidou_png\end.png', confidence=0.8
                 )
-        if myclc is not None:
             clc_cent = pyautogui.center(myclc)
             pyautogui.click(clc_cent)
+        except pyautogui.ImageNotFoundException:
+            print('end.pngに失敗しました。プログラムを停止します。')
+            sys.exit(1)
+
         time.sleep(1)
 
         #倉庫移動画面終了
-        myclc = pyautogui.locateOnScreen(
-                r'C:\DigitalManager\pngs\effita_png\syuuryou.png'
+        try:
+            myclc = pyautogui.locateOnScreen(
+                r'C:\DigitalManager\pngs\effita_png\syuuryou.png', confidence=0.8
                 )
-        if myclc is not None:
             clc_cent = pyautogui.center(myclc)
             pyautogui.click(clc_cent)
+        except pyautogui.ImageNotFoundException:
+            print('倉庫移動終了に失敗しました。プログラムを停止します。')
+            sys.exit(1)
+
         #effita終了
 
     def check_before_after(self)-> List[List[str]]:

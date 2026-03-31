@@ -79,7 +79,7 @@ class PlusKensaGoukaku:
         合格品で済になっていない品番の数を加算する
         '''
         if not inspect_shipping_products:
-            return  shipping_products_plus_goukaku
+            return  inspect_shipping_products
         
         for key, inner_dic in inspect_shipping_products.items():
             if key in self._nonSumis:
