@@ -78,8 +78,8 @@ class CybozuForSoukoidou(ICybozu):
             self._driver.find_element(By.NAME, "Data").send_keys(koment)
             time.sleep(10) 
             elem=self._driver.find_element(By.ID, "followAddButton")
-            time.sleep(3) 
             elem.click()
+            time.sleep(3) 
             return True
         except Exception as e:
             print(e)
@@ -110,8 +110,8 @@ class CybozuForSoukoidou2(ICybozu):
             self._driver.find_element(By.NAME, "Data").send_keys(koment)
             time.sleep(10) 
             elem=self._driver.find_element(By.ID, "followAddButton")
-            time.sleep(3) 
             elem.click()
+            time.sleep(3) 
             return True
         except Exception as e:
             print(e)
