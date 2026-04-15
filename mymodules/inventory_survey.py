@@ -16,6 +16,7 @@ class InventorySurvey:
         fy: IFetchData = instances_for_inventorySurvey['fetchYotei']
         self.yotei: pd.DataFrame = fy.fetch_data()
 
+
         # 出荷処理済データ
         fus: IFetchData = instances_for_inventorySurvey['fetchUriageSumi']
         self.uriage_sumi: pd.DataFrame = fus.fetch_data()
@@ -66,7 +67,6 @@ class InventorySurvey:
                                      indicator=True)
         df_filtered = merged_df[merged_df['_merge'] == 'left_only']. \
                                                     drop(columns=['_merge'])
-
 
 
         # indexを振りなおす（大事)
@@ -124,7 +124,10 @@ class InventorySurvey:
             hinban:str = df_filtered.loc[i, 'Hinban']
             Qty:int = df_filtered.loc[i, 'Qty']
             if df_filtered.loc[i, 'Hinban'] in self.inspect_products:
-                tmp[hinban] = Qty
+                if hinban in tmp:
+                    tmp[hinban] = tmp[hinban] + Qty
+                else:
+                    tmp[hinban] = Qty
 
         # 出荷缶数,現在庫,引当後のdictを作る
         # {'S6-UV542-U':{'出荷缶数':20, '現在庫':35, '引当後':15}, ....}
